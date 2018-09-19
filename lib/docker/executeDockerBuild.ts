@@ -80,7 +80,14 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
     return async (goalInvocation: GoalInvocation): Promise<ExecuteGoalResult> => {
         const { configuration, sdmGoal, credentials, id, context, progressLog } = goalInvocation;
 
-        return configuration.sdm.projectLoader.doWithProject({ credentials, id, context, readOnly: false }, async p => {
+        return configuration.sdm.projectLoader.doWithProject({
+                credentials,
+                id,
+                context,
+                readOnly: false,
+                cloneOptions: { detachHead: true },
+            }, 
+            async p => {
 
             for (const preparation of preparations) {
                 const pResult = await preparation(p, goalInvocation);
@@ -199,7 +206,7 @@ async function dockerPush(image: string,
             return { code: 1, message };
         }
 
-         // 1. run docker push
+        // 1. run docker push
         return spawnAndWatch(
             {
                 command: "docker",
