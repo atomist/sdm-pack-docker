@@ -86,7 +86,7 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
                 context,
                 readOnly: false,
                 cloneOptions: { detachHead: true },
-            }, 
+            },
             async p => {
 
             for (const preparation of preparations) {
