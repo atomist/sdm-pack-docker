@@ -18,7 +18,7 @@ import {
     DefaultGoalNameGenerator,
     FulfillableGoalDetails,
     FulfillableGoalWithRegistrations,
-    getGoalDefintionFrom,
+    getGoalDefinitionFrom,
     Goal,
     ImplementationRegistration,
     IndependentOfEnvironment,
@@ -57,7 +57,7 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
             failedDescription: "Docker build failed",
             isolated: true,
             retryFeasible: true,
-            ...getGoalDefintionFrom(goalDetailsOrUniqueName, DefaultGoalNameGenerator.generateName("docker-build")),
+            ...getGoalDefinitionFrom(goalDetailsOrUniqueName, DefaultGoalNameGenerator.generateName("docker-build")),
         });
     }
 

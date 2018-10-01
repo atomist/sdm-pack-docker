@@ -20,7 +20,7 @@ import {
     ExecuteGoalResult,
     FulfillableGoalDetails,
     FulfillableGoalWithRegistrations,
-    getGoalDefintionFrom,
+    getGoalDefinitionFrom,
     Goal,
     GoalInvocation,
     ImplementationRegistration,
@@ -74,7 +74,7 @@ export class DockerDeploy extends FulfillableGoalWithRegistrations<DockerDeployR
                 ...dependsOn: Goal[]) {
         super({
             ...DockerDeployGoal.definition,
-            ...getGoalDefintionFrom(goalDetailsOrUniqueName, DefaultGoalNameGenerator.generateName("docker-deploy")),
+            ...getGoalDefinitionFrom(goalDetailsOrUniqueName, DefaultGoalNameGenerator.generateName("docker-deploy")),
             displayName: "version",
         }, ...dependsOn);
     }
