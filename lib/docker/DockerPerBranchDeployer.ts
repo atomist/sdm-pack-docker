@@ -16,12 +16,12 @@
 
 import {
     ExecResult,
+    logger,
     safeExec,
 } from "@atomist/automation-client";
 import {
     DelimitedWriteProgressLogDecorator,
     GoalInvocation,
-    logger,
 } from "@atomist/sdm";
 import { SpawnedDeployment } from "@atomist/sdm-core";
 import { spawn } from "child_process";
