@@ -75,7 +75,6 @@ export type DockerImageNameCreator = (p: GitProject,
  * @returns {ExecuteGoal}
  */
 export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
-                                   preparations: PrepareForGoalExecution[] = [],
                                    options: DockerOptions): ExecuteGoal {
     return async (goalInvocation: GoalInvocation): Promise<void | ExecuteGoalResult> => {
         const { configuration, sdmGoal, credentials, id, context, progressLog } = goalInvocation;
@@ -88,13 +87,6 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
                 cloneOptions: { detachHead: true },
             },
             async p => {
-
-            for (const preparation of preparations) {
-                const pResult = await preparation(p, goalInvocation);
-                if (pResult && pResult.code !== 0) {
-                    return pResult;
-                }
-            }
 
             const opts = {
                 cwd: p.baseDir,

@@ -20,9 +20,9 @@ import {
     FulfillableGoalWithRegistrations,
     getGoalDefinitionFrom,
     Goal,
+    GoalDefinition,
     ImplementationRegistration,
     IndependentOfEnvironment,
-    PrepareForGoalExecution,
 } from "@atomist/sdm";
 import { DockerProgressReporter } from "./DockerProgressReporter";
 import {
@@ -38,7 +38,6 @@ import {
 export interface DockerBuildRegistration extends Partial<ImplementationRegistration> {
     options: DockerOptions;
     imageNameCreator?: DockerImageNameCreator;
-    preparations?: PrepareForGoalExecution[];
 }
 
 /**
@@ -50,13 +49,7 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
                 ...dependsOn: Goal[]) {
 
         super({
-            displayName: "docker build",
-            environment: IndependentOfEnvironment,
-            workingDescription: "Running docker build",
-            completedDescription: "Docker build successful",
-            failedDescription: "Docker build failed",
-            isolated: true,
-            retryFeasible: true,
+            ...DockerBuildDefinition,
             ...getGoalDefinitionFrom(goalDetailsOrUniqueName, DefaultGoalNameGenerator.generateName("docker-build")),
         });
     }
@@ -65,7 +58,6 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
         this.addFulfillment({
             goalExecutor: executeDockerBuild(
                 registration.imageNameCreator ? registration.imageNameCreator : DefaultDockerImageNameCreator,
-                registration.preparations,
                 registration.options,
             ),
             name: DefaultGoalNameGenerator.generateName("docker-builder"),
@@ -74,4 +66,14 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
         });
         return this;
     }
+}
+
+const DockerBuildDefinition: GoalDefinition = {
+    displayName: "docker build",
+    environment: IndependentOfEnvironment,
+    workingDescription: "Running docker build",
+    completedDescription: "Docker build successful",
+    failedDescription: "Docker build failed",
+    isolated: true,
+    retryFeasible: true,
 }
