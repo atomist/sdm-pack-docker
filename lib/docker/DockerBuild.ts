@@ -76,4 +76,4 @@ const DockerBuildDefinition: GoalDefinition = {
     failedDescription: "Docker build failed",
     isolated: true,
     retryFeasible: true,
-}
+};
