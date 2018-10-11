@@ -69,6 +69,7 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
 }
 
 const DockerBuildDefinition: GoalDefinition = {
+    uniqueName: "docker-build",
     displayName: "docker build",
     environment: IndependentOfEnvironment,
     workingDescription: "Running docker build",
