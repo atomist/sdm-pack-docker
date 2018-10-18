@@ -25,8 +25,8 @@ import {
     ExecuteGoal,
     ExecuteGoalResult,
     GoalInvocation,
-    PrepareForGoalExecution,
     ProgressLog,
+    projectConfigurationValue,
     SdmGoalEvent,
 } from "@atomist/sdm";
 import {
@@ -122,7 +122,7 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
             }
 
             // 3. run docker push
-            result = await dockerPush(image, options, progressLog);
+            result = await dockerPush(image, p, options, progressLog);
 
             if (result.code !== 0) {
                 return result;
@@ -177,6 +177,7 @@ async function dockerLogin(options: DockerOptions,
 }
 
 async function dockerPush(image: string,
+                          project: GitProject,
                           options: DockerOptions,
                           progressLog: ProgressLog): Promise<ExecuteGoalResult> {
 
@@ -189,7 +190,7 @@ async function dockerPush(image: string,
         options.push = !isInLocalMode();
     }
 
-    if (options.push) {
+    if (projectConfigurationValue("docker.push.enabled", project, options.push || true)) {
 
         if (!options.user || !options.password) {
             const message = "Required configuration missing for pushing docker image. Please make sure to set " +
