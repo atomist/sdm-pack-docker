@@ -185,7 +185,7 @@ async function dockerPush(image: string,
         errorFinder: SuccessIsReturn0ErrorFinder,
     };
 
-    if (projectConfigurationValue("docker.push.enabled", project, options.push || !isInLocalMode())) {
+    if ((await projectConfigurationValue("docker.push.enabled", project, options.push || !isInLocalMode()))) {
 
         if (!options.user || !options.password) {
             const message = "Required configuration missing for pushing docker image. Please make sure to set " +
