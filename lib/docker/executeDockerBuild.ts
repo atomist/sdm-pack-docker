@@ -185,12 +185,7 @@ async function dockerPush(image: string,
         errorFinder: SuccessIsReturn0ErrorFinder,
     };
 
-    // Default so that we don't attempt to push in local mode
-    if (options.push === undefined) {
-        options.push = !isInLocalMode();
-    }
-
-    if (projectConfigurationValue("docker.push.enabled", project, options.push || true)) {
+    if (projectConfigurationValue("docker.push.enabled", project, options.push || !isInLocalMode())) {
 
         if (!options.user || !options.password) {
             const message = "Required configuration missing for pushing docker image. Please make sure to set " +
