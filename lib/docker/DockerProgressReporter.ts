@@ -28,10 +28,10 @@ export const DockerProgressTests: ProgressTest[] = [{
     test: /Invoking goal hook: pre/i,
     phase: "pre-hook",
 }, {
-    test: /Sending build context to Docker daemon/i,
+    test: /docker 'build'/i,
     phase: "docker build",
 }, {
-    test: /The push refers to .* repository/i,
+    test: /docker 'push'/i,
     phase: "docker push",
 }, {
     test: /Invoking goal hook: post/i,
