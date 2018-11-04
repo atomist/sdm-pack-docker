@@ -34,6 +34,7 @@ import {
     postLinkImageWebhook,
     readSdmVersion,
 } from "@atomist/sdm-core";
+import * as _ from "lodash";
 
 export interface DockerOptions {
 
@@ -66,7 +67,7 @@ export interface DockerOptions {
 export type DockerImageNameCreator = (p: GitProject,
                                       sdmGoal: SdmGoalEvent,
                                       options: DockerOptions,
-                                      ctx: HandlerContext) => Promise<{ registry: string, name: string, version: string }>;
+                                      ctx: HandlerContext) => Promise<{ registry: string, name: string, tags: string[] }>;
 
 /**
  * Execute a Docker build for the project
@@ -88,58 +89,59 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
             },
             async p => {
 
-            const opts = {
-                cwd: p.baseDir,
-            };
+                const opts = {
+                    cwd: p.baseDir,
+                };
 
-            const spOpts = {
-                errorFinder: SuccessIsReturn0ErrorFinder,
-            };
+                const spOpts = {
+                    errorFinder: SuccessIsReturn0ErrorFinder,
+                };
 
-            const imageName = await imageNameCreator(p, sdmGoal, options, context);
-            const image = `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${imageName.version}`;
-            const dockerfilePath = await (options.dockerfileFinder ? options.dockerfileFinder(p) : "Dockerfile");
+                const imageName = await imageNameCreator(p, sdmGoal, options, context);
+                const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
+                const dockerfilePath = await (options.dockerfileFinder ? options.dockerfileFinder(p) : "Dockerfile");
 
-            // 1. run docker login
-            let result: ExecuteGoalResult = await dockerLogin(options, progressLog);
+                // 1. run docker login
+                let result: ExecuteGoalResult = await dockerLogin(options, progressLog);
 
-            if (result.code !== 0) {
-                return result;
-            }
+                if (result.code !== 0) {
+                    return result;
+                }
 
-            // 2. run docker build
-            result = await spawnAndWatch(
-                {
-                    command: "docker",
-                    args: ["build", ".", "-f", dockerfilePath, "-t", image],
-                },
-                opts,
-                progressLog,
-                spOpts);
+                // 2. run docker build
+                const tags = _.flatten(images.map(i => ["-t", i]));
+                result = await spawnAndWatch(
+                    {
+                        command: "docker",
+                        args: ["build", ".", "-f", dockerfilePath, ...tags],
+                    },
+                    opts,
+                    progressLog,
+                    spOpts);
 
-            if (result.code !== 0) {
-                return result;
-            }
+                if (result.code !== 0) {
+                    return result;
+                }
 
-            // 3. run docker push
-            result = await dockerPush(image, p, options, progressLog);
+                // 3. run docker push
+                result = await dockerPush(images, p, options, progressLog);
 
-            if (result.code !== 0) {
-                return result;
-            }
+                if (result.code !== 0) {
+                    return result;
+                }
 
-            // 4. create image link
-            if (await postLinkImageWebhook(
-                sdmGoal.repo.owner,
-                sdmGoal.repo.name,
-                sdmGoal.sha,
-                image,
-                context.workspaceId)) {
-                return result;
-            } else {
-                return { code: 1, message: "Image link failed" };
-            }
-        });
+                // 4. create image link
+                if (await postLinkImageWebhook(
+                    sdmGoal.repo.owner,
+                    sdmGoal.repo.name,
+                    sdmGoal.sha,
+                    images[0],
+                    context.workspaceId)) {
+                    return result;
+                } else {
+                    return { code: 1, message: "Image link failed" };
+                }
+            });
     };
 }
 
@@ -176,7 +178,7 @@ async function dockerLogin(options: DockerOptions,
     }
 }
 
-async function dockerPush(image: string,
+async function dockerPush(images: string[],
                           project: GitProject,
                           options: DockerOptions,
                           progressLog: ProgressLog): Promise<ExecuteGoalResult> {
@@ -203,15 +205,16 @@ async function dockerPush(image: string,
         }
 
         // 1. run docker push
-        return spawnAndWatch(
-            {
-                command: "docker",
-                args: ["push", image],
-            },
-            {},
-            progressLog,
-            spOpts);
-
+        for (const image of images) {
+            await spawnAndWatch(
+                {
+                    command: "docker",
+                    args: ["push", image],
+                },
+                {},
+                progressLog,
+                spOpts);
+        }
     } else {
         progressLog.write("Skipping 'docker push'");
     }
@@ -221,11 +224,17 @@ async function dockerPush(image: string,
 
 export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, sdmGoal, options, context) => {
     const name = p.name;
-    const version = await readSdmVersion(sdmGoal.repo.owner, sdmGoal.repo.name,
-        sdmGoal.repo.providerId, sdmGoal.sha, sdmGoal.branch, context);
+    const tags = [await readSdmVersion(sdmGoal.repo.owner, sdmGoal.repo.name,
+        sdmGoal.repo.providerId, sdmGoal.sha, sdmGoal.branch, context)];
+
+    const latestTag = await projectConfigurationValue<boolean>("docker.tag.latest", p, false);
+    if (latestTag && sdmGoal.branch === sdmGoal.push.repo.defaultBranch) {
+        tags.push("latest");
+    }
+
     return {
         registry: options.registry,
         name,
-        version,
+        tags,
     };
 };
