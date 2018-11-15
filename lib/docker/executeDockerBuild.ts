@@ -17,7 +17,6 @@
 import {
     GitProject,
     HandlerContext,
-    spawnAndWatch,
     Success,
     SuccessIsReturn0ErrorFinder,
 } from "@atomist/automation-client";
@@ -28,6 +27,7 @@ import {
     ProgressLog,
     projectConfigurationValue,
     SdmGoalEvent,
+    spawnAndWatch,
 } from "@atomist/sdm";
 import {
     isInLocalMode,
