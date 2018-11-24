@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased](https://github.com/atomist/sdm-pack-docker/compare/1.0.1...HEAD)
 
+### Fixed
+
+-   Docker push failures. [#19](https://github.com/atomist/sdm-pack-docker/issues/19)
+
 ## [1.0.1](https://github.com/atomist/sdm-pack-docker/compare/1.0.0-RC.2...1.0.1) - 2018-11-09
 
 ## [1.0.0-RC.2](https://github.com/atomist/sdm-pack-docker/compare/1.0.0-RC.1...1.0.0-RC.2) - 2018-10-30
