@@ -195,6 +195,8 @@ async function dockerPush(images: string[],
         push = !isInLocalMode();
     }
 
+    let result = Success;
+
     if ((await projectConfigurationValue("docker.push.enabled", project, push))) {
 
         if (!options.user || !options.password) {
@@ -206,7 +208,7 @@ async function dockerPush(images: string[],
 
         // 1. run docker push
         for (const image of images) {
-            await spawnAndWatch(
+            result = await spawnAndWatch(
                 {
                     command: "docker",
                     args: ["push", image],
@@ -214,12 +216,16 @@ async function dockerPush(images: string[],
                 {},
                 progressLog,
                 spOpts);
+
+            if (result && result.code !== 0) {
+                return result;
+            }
         }
     } else {
         progressLog.write("Skipping 'docker push'");
     }
 
-    return Success;
+    return result;
 }
 
 export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, sdmGoal, options, context) => {
