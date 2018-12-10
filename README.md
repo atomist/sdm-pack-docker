@@ -1,7 +1,7 @@
 # @atomist/sdm-pack-docker
 
 [![atomist sdm goals](http://badge.atomist.com/T29E48P34/atomist/sdm-pack-docker/275b4284-9942-41c8-9b91-e90957d99188)](https://app.atomist.com/workspace/T29E48P34)
-[![npm version](https://img.shields.io/npm/v/@atomist/sdm-pack-docker)](https://www.npmjs.com/package/@atomist/sdm-pack-docker)
+[![npm version](https://img.shields.io/npm/v/@atomist/sdm-pack-docker.svg)](https://www.npmjs.com/package/@atomist/sdm-pack-docker)
 
 [Atomist][atomist] software delivery machine (SDM) extension Pack for an Atomist SDM to integrate [docker](https://www.docker.io).
 
