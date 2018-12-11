@@ -18,7 +18,6 @@ import {
     GitProject,
     HandlerContext,
     Success,
-    SuccessIsReturn0ErrorFinder,
 } from "@atomist/automation-client";
 import {
     ExecuteGoal,
@@ -27,7 +26,7 @@ import {
     ProgressLog,
     projectConfigurationValue,
     SdmGoalEvent,
-    spawnAndWatch,
+    spawnAndLog,
 } from "@atomist/sdm";
 import {
     isInLocalMode,
@@ -93,10 +92,6 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
                     cwd: p.baseDir,
                 };
 
-                const spOpts = {
-                    errorFinder: SuccessIsReturn0ErrorFinder,
-                };
-
                 const imageName = await imageNameCreator(p, sdmGoal, options, context);
                 const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
                 const dockerfilePath = await (options.dockerfileFinder ? options.dockerfileFinder(p) : "Dockerfile");
@@ -110,14 +105,12 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
 
                 // 2. run docker build
                 const tags = _.flatten(images.map(i => ["-t", i]));
-                result = await spawnAndWatch(
-                    {
-                        command: "docker",
-                        args: ["build", ".", "-f", dockerfilePath, ...tags],
-                    },
-                    opts,
+                result = await spawnAndLog(
                     progressLog,
-                    spOpts);
+                    "docker",
+                    ["build", ".", "-f", dockerfilePath, ...tags],
+                    opts,
+                );
 
                 if (result.code !== 0) {
                     return result;
@@ -148,10 +141,6 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
 async function dockerLogin(options: DockerOptions,
                            progressLog: ProgressLog): Promise<ExecuteGoalResult> {
 
-    const spOpts = {
-        errorFinder: SuccessIsReturn0ErrorFinder,
-    };
-
     if (options.user && options.password) {
         progressLog.write("Running 'docker login'");
         const loginArgs: string[] = ["login", "--username", options.user, "--password", options.password];
@@ -160,15 +149,11 @@ async function dockerLogin(options: DockerOptions,
         }
 
         // 2. run docker login
-        return spawnAndWatch(
-            {
-                command: "docker",
-                args: loginArgs,
-            },
-            {},
+        return spawnAndLog(
             progressLog,
+            "docker",
+            loginArgs,
             {
-                ...spOpts,
                 logCommand: false,
             });
 
@@ -182,10 +167,6 @@ async function dockerPush(images: string[],
                           project: GitProject,
                           options: DockerOptions,
                           progressLog: ProgressLog): Promise<ExecuteGoalResult> {
-
-    const spOpts = {
-        errorFinder: SuccessIsReturn0ErrorFinder,
-    };
 
     let push;
     // tslint:disable-next-line:no-boolean-literal-compare
@@ -208,14 +189,11 @@ async function dockerPush(images: string[],
 
         // 1. run docker push
         for (const image of images) {
-            result = await spawnAndWatch(
-                {
-                    command: "docker",
-                    args: ["push", image],
-                },
-                {},
+            result = await spawnAndLog(
                 progressLog,
-                spOpts);
+                "docker",
+                ["push", image],
+            );
 
             if (result && result.code !== 0) {
                 return result;

@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-import {
-    ExecResult,
-    logger,
-    safeExec,
-} from "@atomist/automation-client";
+import { logger } from "@atomist/automation-client";
 import {
     DelimitedWriteProgressLogDecorator,
+    execPromise,
+    ExecPromiseResult,
     GoalInvocation,
 } from "@atomist/sdm";
 import { SpawnedDeployment } from "@atomist/sdm-core";
@@ -60,7 +58,8 @@ export class DockerPerBranchDeployer {
     // Keys are ports: values are containerIds
     private readonly portToContainer: { [port: number]: string } = {};
 
-    constructor(private readonly options: DockerPerBranchDeployerOptions) {}
+    constructor(private readonly options: DockerPerBranchDeployerOptions) {
+    }
 
     public async deployProject(goalInvocation: GoalInvocation): Promise<SpawnedDeployment> {
         const branch = goalInvocation.sdmGoal.branch;
@@ -136,8 +135,8 @@ export class DockerPerBranchDeployer {
     }
 }
 
-function stopAndRemoveContainer(existingContainer: string): Promise<ExecResult> {
-    return safeExec("docker",
+function stopAndRemoveContainer(existingContainer: string): Promise<ExecPromiseResult> {
+    return execPromise("docker",
         [
             "rm",
             "-f",
