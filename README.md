@@ -3,7 +3,8 @@
 [![atomist sdm goals](http://badge.atomist.com/T29E48P34/atomist/sdm-pack-docker/275b4284-9942-41c8-9b91-e90957d99188)](https://app.atomist.com/workspace/T29E48P34)
 [![npm version](https://img.shields.io/npm/v/@atomist/sdm-pack-docker.svg)](https://www.npmjs.com/package/@atomist/sdm-pack-docker)
 
-[Atomist][atomist] software delivery machine (SDM) extension Pack for an Atomist SDM to integrate [docker](https://www.docker.io).
+[Atomist][atomist] software delivery machine (SDM) extension Pack for an Atomist SDM to
+integrate [docker](https://www.docker.io).
 
 See the [Atomist documentation][atomist-doc] for more information on
 what SDMs are and what they can do for you using the Atomist API for
@@ -13,7 +14,45 @@ software.
 
 ## Usage
 
+### Docker Image Creation
+
 TODO
+
+### Dockerfile Parsing and Manipulation
+
+This module includes support for parsing Docker files, within the Atomist
+[tree path](https://github.com/atomist/tree-path) model. This allows us to
+query instructions in Docker files and update them without otherwise changing
+file content or formatting.
+
+The following example returns the image name:
+
+```typescript
+const images: string[] = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
+     "//FROM/image/name");
+```
+
+The following example uses `DockerFileParser` exported by this package, to update
+an image tag of `argon`, from `node:argon` to `xenon` to produce a file referencing
+`node:xenon`.
+
+```typescript
+await astUtils.doWithAllMatches(p, DockerFileParser, "Dockerfile",
+    "//FROM/image/tag",
+    n => n.$value = "xenon");
+```
+
+This example uses a custom function to find all `RUN` instructions that invoke `rm`:
+
+```typescript
+const runs = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
+    "//RUN[?removes]",
+    {
+        removes: n => n.$value.includes("rm "),
+    });
+```
+
+Please see `dockerFileParser.test.ts` for further examples.
 
 ## Support
 
