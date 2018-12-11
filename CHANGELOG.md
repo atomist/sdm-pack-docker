@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased](https://github.com/atomist/sdm-pack-docker/compare/1.0.2...HEAD)
 
+### Changed
+
+-   Remove deprecation warnings. [83d443d](https://github.com/atomist/sdm-pack-docker/commit/83d443dc4f09191c5eb9f248168858ed82b056db)
+
 ## [1.0.2](https://github.com/atomist/sdm-pack-docker/compare/1.0.1...1.0.2) - 2018-12-10
 
 ### Fixed
