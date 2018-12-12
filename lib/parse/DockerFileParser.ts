@@ -18,12 +18,13 @@ import {
     FileParser,
     ProjectFile,
 } from "@atomist/automation-client";
-import {TreeNode} from "@atomist/tree-path";
+import { TreeNode } from "@atomist/tree-path";
 
 import {
     DockerfileParser,
     From,
-    Instruction, Label,
+    Instruction,
+    Label,
 } from "dockerfile-ast";
 import {
     Position,
