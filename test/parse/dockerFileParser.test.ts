@@ -20,7 +20,7 @@ import {
     InMemoryProjectFile,
 } from "@atomist/automation-client";
 import * as assert from "assert";
-import {DockerFileParser} from "../../lib/parse/DockerFileParser";
+import { DockerFileParser } from "../../lib/parse/DockerFileParser";
 
 describe("Docker file parser", () => {
 
