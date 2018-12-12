@@ -78,7 +78,7 @@ function isFrom(l: Instruction): l is From {
 
 // Deconstruct FROM to add children.
 // We need to do this for all structures we want to see inside
-function addChildrenFromFromStructure(n: TreeNode, l: From, doc: TextDocument) {
+function addChildrenFromFromStructure(n: TreeNode, l: From, doc: TextDocument): void {
     n.$children = [{
         $parent: n,
         $name: "image",
