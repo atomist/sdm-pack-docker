@@ -18,12 +18,12 @@ import {
     FileParser,
     ProjectFile,
 } from "@atomist/automation-client";
-import { TreeNode } from "@atomist/tree-path";
+import {TreeNode} from "@atomist/tree-path";
 
 import {
     DockerfileParser,
     From,
-    Instruction,
+    Instruction, Label,
 } from "dockerfile-ast";
 import {
     Position,
@@ -67,6 +67,16 @@ function instructionToTreeNode(l: Instruction, doc: TextDocument, parent?: TreeN
     // AST library, so we need to do this manually for subelements we care about.
     if (isFrom(l)) {
         addChildrenFromFromStructure(n, l, doc);
+    } else if (isLabel(l)) {
+        addChildrenFromLabelStructure(n, l, doc);
+    } else {
+        switch (l.getKeyword()) {
+            case "MAINTAINER" :
+                addChildrenFromMaintainer(n, l, doc);
+                break;
+            default:
+                break;
+        }
     }
     return n;
 }
@@ -74,6 +84,11 @@ function instructionToTreeNode(l: Instruction, doc: TextDocument, parent?: TreeN
 function isFrom(l: Instruction): l is From {
     const maybe = l as From;
     return !!maybe.getImageName;
+}
+
+function isLabel(l: Instruction): l is Label {
+    const maybe = l as Label;
+    return !!maybe.getProperties;
 }
 
 // Deconstruct FROM to add children.
@@ -94,6 +109,36 @@ function addChildrenFromFromStructure(n: TreeNode, l: From, doc: TextDocument): 
                 $value: l.getImageTag(),
                 $offset: convertToOffset(l.getImageTagRange().start, doc),
             }],
+    }];
+}
+
+function addChildrenFromLabelStructure(n: TreeNode, l: Label, doc: TextDocument): void {
+    n.$children = l.getProperties().map(prop => ({
+        $parent: n,
+        $name: "pair",
+        $value: l.getTextContent().slice("LABEL ".length),
+        // Children are the name and value
+        $children: [{
+            $name: "key",
+            $value: prop.getName(),
+            $offset: convertToOffset(prop.getNameRange().start, doc),
+        },
+            {
+                $name: "value",
+                $value: prop.getValue(),
+                $offset: convertToOffset(prop.getValueRange().start, doc),
+            }],
+    }));
+}
+
+function addChildrenFromMaintainer(n: TreeNode, m: Instruction, doc: TextDocument): void {
+    const rest = n.$value.slice("MAINTAINER ".length);
+    n.$children = [{
+        $parent: n,
+        $name: "maintainer",
+        $value: rest,
+        $offset: n.$offset + "MAINTAINER ".length,
+        $children: [],
     }];
 }
 

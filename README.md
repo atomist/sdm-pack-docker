@@ -52,6 +52,28 @@ const runs = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
     });
 ```
 
+We introduce the `pair` level to handle `LABELs`. For example, consider 
+the following input:
+
+```
+LABEL "com.example.vendor"="ACME Incorporated"
+
+```
+
+The following code queries it:
+
+```typescript
+const labelKeys = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
+            "//LABEL/pair/key");
+assert.strictEqual(labelKeys[0], `com.example.vendor`);
+const labelValues = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
+    "//LABEL/pair/value");
+assert.strictEqual(labelValues[0], `ACME Incorporated`);
+const knownKeys = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
+    "//LABEL/pair[/key[@value='com.example.vendor']]/value");
+assert.strictEqual(knownKeys[0], `ACME Incorporated`);
+```
+
 Please see `dockerFileParser.test.ts` for further examples.
 
 ## Support
