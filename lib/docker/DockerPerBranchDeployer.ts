@@ -62,7 +62,7 @@ export class DockerPerBranchDeployer {
     }
 
     public async deployProject(goalInvocation: GoalInvocation): Promise<SpawnedDeployment> {
-        const branch = goalInvocation.sdmGoal.branch;
+        const branch = goalInvocation.goalEvent.branch;
 
         let port = this.repoBranchToPort[goalInvocation.id.repo + ":" + branch];
         if (!port) {
@@ -88,7 +88,7 @@ export class DockerPerBranchDeployer {
                 "run",
                 `-p${port}:${this.options.sourcePort}`,
                 `--name=${name}`,
-                goalInvocation.sdmGoal.push.after.image.imageName,
+                goalInvocation.goalEvent.push.after.image.imageName,
             ],
             {});
         if (!childProcess.pid) {

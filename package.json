@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@atomist/automation-client": "1.2.0-master.20181217141728",
-    "@atomist/sdm": "1.2.0-master.20181217135326",
+    "@atomist/sdm": "1.2.0-master.20181217165228",
     "@atomist/sdm-core": "1.2.0-master.20181213212357",
     "@types/lodash": "^4.14.118",
     "@types/mocha": "^5.2.5",
