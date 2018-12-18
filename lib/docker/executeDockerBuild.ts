@@ -23,10 +23,9 @@ import {
     doWithProject,
     ExecuteGoal,
     ExecuteGoalResult,
-    ProgressLog,
+    ProjectAwareGoalInvocation,
     projectConfigurationValue,
     SdmGoalEvent,
-    spawnLog,
 } from "@atomist/sdm";
 import {
     isInLocalMode,
@@ -77,14 +76,14 @@ export type DockerImageNameCreator = (p: GitProject,
 export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
                                    options: DockerOptions): ExecuteGoal {
     return doWithProject(async gi => {
-        const { goalEvent, context, progressLog, project } = gi;
+        const { goalEvent, context, project } = gi;
 
         const imageName = await imageNameCreator(project, goalEvent, options, context);
         const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
         const dockerfilePath = await (options.dockerfileFinder ? options.dockerfileFinder(project) : "Dockerfile");
 
         // 1. run docker login
-        let result: ExecuteGoalResult = await dockerLogin(options, progressLog);
+        let result: ExecuteGoalResult = await dockerLogin(options, gi);
 
         if (result.code !== 0) {
             return result;
@@ -102,7 +101,7 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
         }
 
         // 3. run docker push
-        result = await dockerPush(images, project, options, progressLog);
+        result = await dockerPush(images, options, gi);
 
         if (result.code !== 0) {
             return result;
@@ -126,34 +125,33 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
 }
 
 async function dockerLogin(options: DockerOptions,
-                           progressLog: ProgressLog): Promise<ExecuteGoalResult> {
+                           gi: ProjectAwareGoalInvocation): Promise<ExecuteGoalResult> {
 
     if (options.user && options.password) {
-        progressLog.write("Running 'docker login'");
+        gi.progressLog.write("Running 'docker login'");
         const loginArgs: string[] = ["login", "--username", options.user, "--password", options.password];
         if (/[^A-Za-z0-9]/.test(options.registry)) {
             loginArgs.push(options.registry);
         }
 
         // 2. run docker login
-        return spawnLog(
+        return gi.spawn(
             "docker",
             loginArgs,
             {
                 logCommand: false,
-                log: progressLog,
+                log: gi.progressLog,
             });
 
     } else {
-        progressLog.write("Skipping 'docker login' because user and password are not configured");
+        gi.progressLog.write("Skipping 'docker login' because user and password are not configured");
         return Success;
     }
 }
 
 async function dockerPush(images: string[],
-                          project: GitProject,
                           options: DockerOptions,
-                          progressLog: ProgressLog): Promise<ExecuteGoalResult> {
+                          gi: ProjectAwareGoalInvocation): Promise<ExecuteGoalResult> {
 
     let push;
     // tslint:disable-next-line:no-boolean-literal-compare
@@ -165,23 +163,20 @@ async function dockerPush(images: string[],
 
     let result = Success;
 
-    if ((await projectConfigurationValue("docker.push.enabled", project, push))) {
+    if ((await projectConfigurationValue("docker.push.enabled", gi.project, push))) {
 
         if (!options.user || !options.password) {
             const message = "Required configuration missing for pushing docker image. Please make sure to set " +
                 "'registry', 'user' and 'password' in your configuration.";
-            progressLog.write(message);
+            gi.progressLog.write(message);
             return { code: 1, message };
         }
 
         // 1. run docker push
         for (const image of images) {
-            result = await spawnLog(
+            result = await gi.spawn(
                 "docker",
                 ["push", image],
-                {
-                    log: progressLog,
-                },
             );
 
             if (result && result.code !== 0) {
@@ -189,7 +184,7 @@ async function dockerPush(images: string[],
             }
         }
     } else {
-        progressLog.write("Skipping 'docker push'");
+        gi.progressLog.write("Skipping 'docker push'");
     }
 
     return result;
