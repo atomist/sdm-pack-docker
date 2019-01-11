@@ -34,7 +34,9 @@ import {
     postLinkImageWebhook,
     readSdmVersion,
 } from "@atomist/sdm-core";
+import * as fs from "fs-extra";
 import * as _ from "lodash";
+import * as path from "path";
 
 /**
  * Options to configure the Docker image build
@@ -148,16 +150,24 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
             const builderArgs: string[] = [];
 
             if (await pushEnabled(gi, options)) {
-                builderArgs.push(..._.flatten(images.map(i => ["-d", i])), "--cache=true");
+                builderArgs.push(...images.map(i => `-d=${i}`), "--cache=true");
             } else {
                 builderArgs.push("--no-push");
             }
             builderArgs.push(
                 ...(options.builderArgs.length > 0 ? options.builderArgs : ["--snapshotMode=time", "--reproducible"]));
 
+            // Check if base image cache dir is available
+            const cacheFilPath = _.get(gi, "configuration.sdm.cache.path", "/opt/data");
+            if (_.get(gi, "configuration.sdm.cache.enabled") === true && (await fs.pathExists(cacheFilPath))) {
+                const baseImageCache = path.join(cacheFilPath, "base-image-cache");
+                await fs.mkdirs(baseImageCache);
+                builderArgs.push(`--cache-dir=${baseImageCache}`, "--cache=true");
+            }
+
             result = await gi.spawn(
                 "/kaniko/executor",
-                ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ...builderArgs],
+                ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ..._.uniq(builderArgs)],
             );
 
             if (result.code !== 0) {

@@ -24,9 +24,6 @@ import {
     GoalDefinition,
     ImplementationRegistration,
     IndependentOfEnvironment,
-    LoggingProgressLog,
-    spawnLog,
-    SpawnLogCommand,
 } from "@atomist/sdm";
 import * as _ from "lodash";
 import { DockerProgressReporter } from "./DockerProgressReporter";
@@ -41,6 +38,10 @@ import {
  * Registration for a certain docker build and push configuration
  */
 export interface DockerBuildRegistration extends Partial<ImplementationRegistration> {
+
+    /**
+     * Options to configure the docker build
+     */
     options?: DockerOptions;
 
     /**
