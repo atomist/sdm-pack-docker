@@ -72,7 +72,7 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
     }
 
     public with(registration: DockerBuildRegistration): this {
-        const optsToUse = mergeOptions<DockerOptions>(DefaultDockerOptions, registration.options, "sdm.docker.build");
+        const optsToUse = mergeOptions<DockerOptions>(DefaultDockerOptions, registration.options, "docker.build");
 
         // Backwards compatibility
         // tslint:disable:deprecation
@@ -105,7 +105,7 @@ const DockerBuildDefinition: GoalDefinition = {
 export function mergeOptions<OPTIONS>(defaults: OPTIONS, explicit: OPTIONS, configurationPath?: string): OPTIONS {
     const options: OPTIONS = _.merge(defaults, explicit || {});
     if (!!configurationPath) {
-        const configurationOptions = configurationValue<OPTIONS>(configurationPath) || {};
+        const configurationOptions = configurationValue<OPTIONS>(`sdm.${configurationPath}`) || {};
         return _.merge(options, configurationOptions);
     }
     return options;

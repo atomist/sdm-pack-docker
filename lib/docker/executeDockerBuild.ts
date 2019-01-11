@@ -145,12 +145,19 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
 
         } else if (options.builder === "kaniko") {
             // 2. run kaniko build
-            const builderArgs = options.builderArgs.length > 0 ? options.builderArgs : ["--cache=true", "--snapshotMode=time", "--reproducible"];
-            const tags = _.flatten(images.map(i => ["-d", i]));
+            const builderArgs: string[] = [];
+
+            if (await pushEnabled(gi, options)) {
+                builderArgs.push(..._.flatten(images.map(i => ["-d", i])), "--cache=true");
+            } else {
+                builderArgs.push("--no-push");
+            }
+            builderArgs.push(
+                ...(options.builderArgs.length > 0 ? options.builderArgs : ["--snapshotMode=time", "--reproducible"]));
 
             result = await gi.spawn(
                 "/kaniko/executor",
-                ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ...tags, ...builderArgs],
+                ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ...builderArgs],
             );
 
             if (result.code !== 0) {
@@ -204,17 +211,9 @@ async function dockerPush(images: string[],
                           options: DockerOptions,
                           gi: ProjectAwareGoalInvocation): Promise<ExecuteGoalResult> {
 
-    let push;
-    // tslint:disable-next-line:no-boolean-literal-compare
-    if (options.push === true || options.push === false) {
-        push = options.push;
-    } else {
-        push = !isInLocalMode();
-    }
-
     let result = Success;
 
-    if ((await projectConfigurationValue("docker.push.enabled", gi.project, push))) {
+    if (await pushEnabled(gi, options)) {
 
         if (!options.user || !options.password) {
             const message = "Required configuration missing for pushing docker image. Please make sure to set " +
@@ -259,8 +258,19 @@ export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, s
 };
 
 async function checkIsBuilderAvailable(cmd: string, ...args: string[]): Promise<void> {
-    const result = await spawnLog(cmd, args, { log: new LoggingProgressLog("docker-build")});
+    const result = await spawnLog(cmd, args, { log: new LoggingProgressLog("docker-build") });
     if (result.code !== 0) {
         throw new Error(`Configured Docker image builder '${cmd}' is not available`);
     }
+}
+
+async function pushEnabled(gi: ProjectAwareGoalInvocation, options: DockerOptions): Promise<boolean> {
+    let push;
+    // tslint:disable-next-line:no-boolean-literal-compare
+    if (options.push === true || options.push === false) {
+        push = options.push;
+    } else {
+        push = !isInLocalMode();
+    }
+    return projectConfigurationValue("docker.build.push", gi.project, push);
 }
