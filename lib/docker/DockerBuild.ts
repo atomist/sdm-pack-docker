@@ -105,7 +105,7 @@ const DockerBuildDefinition: GoalDefinition = {
 export function mergeOptions<OPTIONS>(defaults: OPTIONS, explicit: OPTIONS, configurationPath?: string): OPTIONS {
     const options: OPTIONS = _.merge(defaults, explicit || {});
     if (!!configurationPath) {
-        const configurationOptions = configurationValue<OPTIONS>(`sdm.${configurationPath}`) || {};
+        const configurationOptions = configurationValue<OPTIONS>(`sdm.${configurationPath}`, {} as any);
         return _.merge(options, configurationOptions);
     }
     return options;
