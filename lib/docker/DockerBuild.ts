@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { configurationValue } from "@atomist/automation-client";
 import {
     DefaultGoalNameGenerator,
     FulfillableGoalDetails,
@@ -23,7 +24,11 @@ import {
     GoalDefinition,
     ImplementationRegistration,
     IndependentOfEnvironment,
+    LoggingProgressLog,
+    spawnLog,
+    SpawnLogCommand,
 } from "@atomist/sdm";
+import * as _ from "lodash";
 import { DockerProgressReporter } from "./DockerProgressReporter";
 import {
     DefaultDockerImageNameCreator,
@@ -36,9 +41,21 @@ import {
  * Registration for a certain docker build and push configuration
  */
 export interface DockerBuildRegistration extends Partial<ImplementationRegistration> {
-    options: DockerOptions;
+    options?: DockerOptions;
+
+    /**
+     * @deprecated use options.dockerImageNameCreator
+     */
     imageNameCreator?: DockerImageNameCreator;
 }
+
+const DefaultDockerOptions: DockerOptions = {
+    dockerImageNameCreator: DefaultDockerImageNameCreator,
+    dockerfileFinder: async () => "Dockerfile",
+    push: false,
+    builder: "docker",
+    builderArgs: [],
+};
 
 /**
  * Goal that performs docker build and push depending on the provided options
@@ -55,11 +72,17 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
     }
 
     public with(registration: DockerBuildRegistration): this {
+        const optsToUse = mergeOptions<DockerOptions>(DefaultDockerOptions, registration.options, "sdm.docker.build");
+
+        // Backwards compatibility
+        // tslint:disable:deprecation
+        if (!!registration.imageNameCreator && (!registration.options || !registration.options.dockerImageNameCreator)) {
+            optsToUse.dockerImageNameCreator = registration.imageNameCreator;
+        }
+        // tslint:enable:deprecation
+
         this.addFulfillment({
-            goalExecutor: executeDockerBuild(
-                registration.imageNameCreator ? registration.imageNameCreator : DefaultDockerImageNameCreator,
-                registration.options,
-            ),
+            goalExecutor: executeDockerBuild(optsToUse),
             name: DefaultGoalNameGenerator.generateName("docker-builder"),
             progressReporter: DockerProgressReporter,
             ...registration as ImplementationRegistration,
@@ -78,3 +101,12 @@ const DockerBuildDefinition: GoalDefinition = {
     isolated: true,
     retryFeasible: true,
 };
+
+export function mergeOptions<OPTIONS>(defaults: OPTIONS, explicit: OPTIONS, configurationPath?: string): OPTIONS {
+    const options: OPTIONS = _.merge(defaults, explicit || {});
+    if (!!configurationPath) {
+        const configurationOptions = configurationValue<OPTIONS>(configurationPath) || {};
+        return _.merge(options, configurationOptions);
+    }
+    return options;
+}

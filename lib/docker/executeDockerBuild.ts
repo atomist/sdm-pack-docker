@@ -23,9 +23,11 @@ import {
     doWithProject,
     ExecuteGoal,
     ExecuteGoalResult,
+    LoggingProgressLog,
     ProjectAwareGoalInvocation,
     projectConfigurationValue,
     SdmGoalEvent,
+    spawnLog,
 } from "@atomist/sdm";
 import {
     isInLocalMode,
@@ -34,7 +36,15 @@ import {
 } from "@atomist/sdm-core";
 import * as _ from "lodash";
 
+/**
+ * Options to configure the Docker image build
+ */
 export interface DockerOptions {
+
+    /**
+     * Provide the image tag for the docker image to build
+     */
+    dockerImageNameCreator?: DockerImageNameCreator;
 
     /**
      * True if the docker image should be pushed to the registry
@@ -59,7 +69,22 @@ export interface DockerOptions {
      */
     password?: string;
 
+    /**
+     * Find the Dockerfile within the project
+     * @param p the project
+     */
     dockerfileFinder?: (p: GitProject) => Promise<string>;
+
+    /**
+     * Optionally specify what docker image builder to use.
+     * Defaults to "docker"
+     */
+    builder?: "docker" | "kaniko";
+
+    /**
+     * Optional arguments passed to the docker image builder
+     */
+    builderArgs?: string[];
 }
 
 export type DockerImageNameCreator = (p: GitProject,
@@ -73,12 +98,20 @@ export type DockerImageNameCreator = (p: GitProject,
  * @param {DockerOptions} options
  * @returns {ExecuteGoal}
  */
-export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
-                                   options: DockerOptions): ExecuteGoal {
+export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
     return doWithProject(async gi => {
         const { goalEvent, context, project } = gi;
 
-        const imageName = await imageNameCreator(project, goalEvent, options, context);
+        switch (options.builder) {
+            case "docker":
+                await checkIsBuilderAvailable("docker", "help");
+                break;
+            case "kaniko":
+                await checkIsBuilderAvailable("/kaniko/executor", "--help");
+                break;
+        }
+
+        const imageName = await options.dockerImageNameCreator(project, goalEvent, options, context);
         const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
         const dockerfilePath = await (options.dockerfileFinder ? options.dockerfileFinder(project) : "Dockerfile");
 
@@ -89,22 +122,40 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
             return result;
         }
 
-        // 2. run docker build
-        const tags = _.flatten(images.map(i => ["-t", i]));
-        result = await gi.spawn(
-            "docker",
-            ["build", ".", "-f", dockerfilePath, ...tags],
-        );
+        if (options.builder === "docker") {
 
-        if (result.code !== 0) {
-            return result;
-        }
+            // 2. run docker build
+            const tags = _.flatten(images.map(i => ["-t", i]));
 
-        // 3. run docker push
-        result = await dockerPush(images, options, gi);
+            result = await gi.spawn(
+                "docker",
+                ["build", ".", "-f", dockerfilePath, ...tags, ...options.builderArgs],
+            );
 
-        if (result.code !== 0) {
-            return result;
+            if (result.code !== 0) {
+                return result;
+            }
+
+            // 3. run docker push
+            result = await dockerPush(images, options, gi);
+
+            if (result.code !== 0) {
+                return result;
+            }
+
+        } else if (options.builder === "kaniko") {
+            // 2. run kaniko build
+            const builderArgs = options.builderArgs.length > 0 ? options.builderArgs : ["--cache=true", "--snapshotMode=time", "--reproducible"];
+            const tags = _.flatten(images.map(i => ["-d", i]));
+
+            result = await gi.spawn(
+                "/kaniko/executor",
+                ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ...tags, ...builderArgs],
+            );
+
+            if (result.code !== 0) {
+                return result;
+            }
         }
 
         // 4. create image link
@@ -119,8 +170,8 @@ export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
             return { code: 1, message: "Image link failed" };
         }
     }, {
-        readOnly: false,
-        detachHead: true,
+        readOnly: true,
+        detachHead: false,
     });
 }
 
@@ -206,3 +257,10 @@ export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, s
         tags,
     };
 };
+
+async function checkIsBuilderAvailable(cmd: string, ...args: string[]): Promise<void> {
+    const result = await spawnLog(cmd, args, { log: new LoggingProgressLog("docker-build")});
+    if (result.code !== 0) {
+        throw new Error(`Configured Docker image builder '${cmd}' is not available`);
+    }
+}
