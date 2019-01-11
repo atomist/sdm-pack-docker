@@ -36,6 +36,12 @@ export const DockerProgressTests: ProgressTest[] = [{
 }, {
     test: /Invoking goal hook: post/i,
     phase: "post-hook",
+}, {
+    test: /\/kaniko\/executor/i,
+    phase: "kaniko build",
+}, {
+    test: /pushed blob sha256/i,
+    phase: "kaniko push",
 }];
 
 /**
