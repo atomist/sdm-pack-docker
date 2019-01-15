@@ -139,6 +139,13 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                 result = await gi.spawn(
                     "docker",
                     ["build", ".", "-f", dockerfilePath, ...tags, ...options.builderArgs],
+                    {
+                        env: {
+                            ...process.env,
+                            DOCKER_CONFIG: dockerConfigPath(options),
+                        },
+                        log: gi.progressLog,
+                    },
                 );
 
                 if (result.code !== 0) {
@@ -250,6 +257,13 @@ async function dockerPush(images: string[],
             result = await gi.spawn(
                 "docker",
                 ["push", image],
+                {
+                    env: {
+                        ...process.env,
+                        DOCKER_CONFIG: dockerConfigPath(options),
+                    },
+                    log: gi.progressLog,
+                },
             );
 
             if (result && result.code !== 0) {
