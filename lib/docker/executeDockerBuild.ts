@@ -305,4 +305,3 @@ function dockerConfigPath(options: DockerOptions): string {
         return path.join(os.homedir(), ".docker", `config.sdm.json`);
     }
 }
-
