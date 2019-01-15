@@ -36,6 +36,7 @@ import {
 } from "@atomist/sdm-core";
 import * as fs from "fs-extra";
 import * as _ from "lodash";
+import * as os from "os";
 import * as path from "path";
 
 /**
@@ -72,6 +73,12 @@ export interface DockerOptions {
     password?: string;
 
     /**
+     * Optional Docker config in json as alternative to running
+     * 'docker login' with provided registry, user and password.
+     */
+    config?: string;
+
+    /**
      * Find the Dockerfile within the project
      * @param p the project
      */
@@ -102,94 +109,104 @@ export type DockerImageNameCreator = (p: GitProject,
  */
 export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
     return doWithProject(async gi => {
-        const { goalEvent, context, project } = gi;
+            const { goalEvent, context, project } = gi;
 
-        switch (options.builder) {
-            case "docker":
-                await checkIsBuilderAvailable("docker", "help");
-                break;
-            case "kaniko":
-                await checkIsBuilderAvailable("/kaniko/executor", "--help");
-                break;
-        }
+            switch (options.builder) {
+                case "docker":
+                    await checkIsBuilderAvailable("docker", "help");
+                    break;
+                case "kaniko":
+                    await checkIsBuilderAvailable("/kaniko/executor", "--help");
+                    break;
+            }
 
-        const imageName = await options.dockerImageNameCreator(project, goalEvent, options, context);
-        const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
-        const dockerfilePath = await (options.dockerfileFinder ? options.dockerfileFinder(project) : "Dockerfile");
+            const imageName = await options.dockerImageNameCreator(project, goalEvent, options, context);
+            const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
+            const dockerfilePath = await (options.dockerfileFinder ? options.dockerfileFinder(project) : "Dockerfile");
 
-        // 1. run docker login
-        let result: ExecuteGoalResult = await dockerLogin(options, gi);
-
-        if (result.code !== 0) {
-            return result;
-        }
-
-        if (options.builder === "docker") {
-
-            // 2. run docker build
-            const tags = _.flatten(images.map(i => ["-t", i]));
-
-            result = await gi.spawn(
-                "docker",
-                ["build", ".", "-f", dockerfilePath, ...tags, ...options.builderArgs],
-            );
+            // 1. run docker login
+            let result: ExecuteGoalResult = await dockerLogin(options, gi);
 
             if (result.code !== 0) {
                 return result;
             }
 
-            // 3. run docker push
-            result = await dockerPush(images, options, gi);
+            if (options.builder === "docker") {
 
-            if (result.code !== 0) {
-                return result;
+                // 2. run docker build
+                const tags = _.flatten(images.map(i => ["-t", i]));
+
+                result = await gi.spawn(
+                    "docker",
+                    ["build", ".", "-f", dockerfilePath, ...tags, ...options.builderArgs],
+                );
+
+                if (result.code !== 0) {
+                    return result;
+                }
+
+                // 3. run docker push
+                result = await dockerPush(images, options, gi);
+
+                if (result.code !== 0) {
+                    return result;
+                }
+
+            } else if (options.builder === "kaniko") {
+
+                // 2. run kaniko build
+                const builderArgs: string[] = [];
+
+                if (await pushEnabled(gi, options)) {
+                    builderArgs.push(...images.map(i => `-d=${i}`), "--cache=true");
+                } else {
+                    builderArgs.push("--no-push");
+                }
+                builderArgs.push(
+                    ...(options.builderArgs.length > 0 ? options.builderArgs : ["--snapshotMode=time", "--reproducible"]));
+
+                // Check if base image cache dir is available
+                const cacheFilPath = _.get(gi, "configuration.sdm.cache.path", "/opt/data");
+                if (_.get(gi, "configuration.sdm.cache.enabled") === true && (await fs.pathExists(cacheFilPath))) {
+                    const baseImageCache = path.join(cacheFilPath, "base-image-cache");
+                    await fs.mkdirs(baseImageCache);
+                    builderArgs.push(`--cache-dir=${baseImageCache}`, "--cache=true");
+                }
+
+                result = await gi.spawn(
+                    "/kaniko/executor",
+                    ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ..._.uniq(builderArgs)],
+                    {
+                        env: {
+                            ...process.env,
+                            DOCKER_CONFIG: dockerConfigPath(options),
+                        },
+                        log: gi.progressLog,
+                    },
+                );
+
+                if (result.code !== 0) {
+                    return result;
+                }
             }
 
-        } else if (options.builder === "kaniko") {
-            // 2. run kaniko build
-            const builderArgs: string[] = [];
-
-            if (await pushEnabled(gi, options)) {
-                builderArgs.push(...images.map(i => `-d=${i}`), "--cache=true");
+            // 4. create image link
+            if (await postLinkImageWebhook(
+                goalEvent.repo.owner,
+                goalEvent.repo.name,
+                goalEvent.sha,
+                images[0],
+                context.workspaceId)) {
+                return result;
             } else {
-                builderArgs.push("--no-push");
+                return { code: 1, message: "Image link failed" };
             }
-            builderArgs.push(
-                ...(options.builderArgs.length > 0 ? options.builderArgs : ["--snapshotMode=time", "--reproducible"]));
-
-            // Check if base image cache dir is available
-            const cacheFilPath = _.get(gi, "configuration.sdm.cache.path", "/opt/data");
-            if (_.get(gi, "configuration.sdm.cache.enabled") === true && (await fs.pathExists(cacheFilPath))) {
-                const baseImageCache = path.join(cacheFilPath, "base-image-cache");
-                await fs.mkdirs(baseImageCache);
-                builderArgs.push(`--cache-dir=${baseImageCache}`, "--cache=true");
-            }
-
-            result = await gi.spawn(
-                "/kaniko/executor",
-                ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ..._.uniq(builderArgs)],
-            );
-
-            if (result.code !== 0) {
-                return result;
-            }
-        }
-
-        // 4. create image link
-        if (await postLinkImageWebhook(
-            goalEvent.repo.owner,
-            goalEvent.repo.name,
-            goalEvent.sha,
-            images[0],
-            context.workspaceId)) {
-            return result;
-        } else {
-            return { code: 1, message: "Image link failed" };
-        }
-    }, {
-        readOnly: true,
-        detachHead: false,
-    });
+        },
+        {
+            readOnly: true,
+            detachHead: false,
+        },
+    );
 }
 
 async function dockerLogin(options: DockerOptions,
@@ -211,10 +228,13 @@ async function dockerLogin(options: DockerOptions,
                 log: gi.progressLog,
             });
 
+    } else if (options.config) {
+        gi.progressLog.write("Authenticating with provided Docker config.json");
+        await fs.writeFile(dockerConfigPath(options), options.config);
     } else {
-        gi.progressLog.write("Skipping 'docker login' because user and password are not configured");
-        return Success;
+        gi.progressLog.write("Skipping 'docker auth' because no credentials configured");
     }
+    return Success;
 }
 
 async function dockerPush(images: string[],
@@ -224,13 +244,6 @@ async function dockerPush(images: string[],
     let result = Success;
 
     if (await pushEnabled(gi, options)) {
-
-        if (!options.user || !options.password) {
-            const message = "Required configuration missing for pushing docker image. Please make sure to set " +
-                "'registry', 'user' and 'password' in your configuration.";
-            gi.progressLog.write(message);
-            return { code: 1, message };
-        }
 
         // 1. run docker push
         for (const image of images) {
@@ -279,8 +292,17 @@ async function pushEnabled(gi: ProjectAwareGoalInvocation, options: DockerOption
     // tslint:disable-next-line:no-boolean-literal-compare
     if (options.push === true || options.push === false) {
         push = options.push;
-    } else {
-        push = !isInLocalMode();
+    } else if ((!!options.user && !!options.password) || !!options.config) {
+        push = true;
     }
     return projectConfigurationValue("docker.build.push", gi.project, push);
 }
+
+function dockerConfigPath(options: DockerOptions): string {
+    if (!!options.user && !!options.password) {
+        return path.join(os.homedir(), ".docker", `config.json`);
+    } else if (!!options.config) {
+        return path.join(os.homedir(), ".docker", `config.sdm.json`);
+    }
+}
+
