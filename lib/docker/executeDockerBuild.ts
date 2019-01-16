@@ -142,7 +142,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                     {
                         env: {
                             ...process.env,
-                            DOCKER_CONFIG: dockerConfigPath(options),
+                            DOCKER_CONFIG: dockerConfigPath(options, gi.goalEvent),
                         },
                         log: gi.progressLog,
                     },
@@ -186,7 +186,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                     {
                         env: {
                             ...process.env,
-                            DOCKER_CONFIG: dockerConfigPath(options),
+                            DOCKER_CONFIG: dockerConfigPath(options, gi.goalEvent),
                         },
                         log: gi.progressLog,
                     },
@@ -237,7 +237,9 @@ async function dockerLogin(options: DockerOptions,
 
     } else if (options.config) {
         gi.progressLog.write("Authenticating with provided Docker config.json");
-        await fs.writeFile(dockerConfigPath(options), options.config);
+        const dockerConfig = dockerConfigPath(options, gi.goalEvent);
+        await fs.ensureDir(dockerConfig);
+        await fs.writeFile(dockerConfig, options.config);
     } else {
         gi.progressLog.write("Skipping 'docker auth' because no credentials configured");
     }
@@ -260,7 +262,7 @@ async function dockerPush(images: string[],
                 {
                     env: {
                         ...process.env,
-                        DOCKER_CONFIG: dockerConfigPath(options),
+                        DOCKER_CONFIG: dockerConfigPath(options, gi.goalEvent),
                     },
                     log: gi.progressLog,
                 },
@@ -312,10 +314,10 @@ async function pushEnabled(gi: ProjectAwareGoalInvocation, options: DockerOption
     return projectConfigurationValue("docker.build.push", gi.project, push);
 }
 
-function dockerConfigPath(options: DockerOptions): string {
+function dockerConfigPath(options: DockerOptions, goalEvent: SdmGoalEvent): string {
     if (!!options.user && !!options.password) {
-        return path.join(os.homedir(), ".docker", `config.json`);
+        return path.join(os.homedir(), ".docker");
     } else if (!!options.config) {
-        return path.join(os.homedir(), ".docker", `config.sdm.json`);
+        return path.join(os.homedir(), `.docker-${goalEvent.goalSetId}`);
     }
 }
