@@ -297,7 +297,7 @@ export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, s
 };
 
 async function checkIsBuilderAvailable(cmd: string, ...args: string[]): Promise<void> {
-    const result = await spawnLog(cmd, args, { log: new LoggingProgressLog("docker-build") });
+    const result = await spawnLog(cmd, args, { log: new LoggingProgressLog("docker-build-check") });
     if (result.code !== 0) {
         throw new Error(`Configured Docker image builder '${cmd}' is not available`);
     }
