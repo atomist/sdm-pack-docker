@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { configurationValue } from "@atomist/automation-client";
 import {
     DefaultGoalNameGenerator,
     FulfillableGoalDetails,
@@ -24,8 +23,8 @@ import {
     GoalDefinition,
     ImplementationRegistration,
     IndependentOfEnvironment,
+    mergeOptions,
 } from "@atomist/sdm";
-import * as _ from "lodash";
 import { DockerProgressReporter } from "./DockerProgressReporter";
 import {
     DefaultDockerImageNameCreator,
@@ -73,7 +72,7 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
     }
 
     public with(registration: DockerBuildRegistration): this {
-        const optsToUse = mergeOptions<DockerOptions>(DefaultDockerOptions, registration.options, "docker.build");
+        const optsToUse = mergeOptions<DockerOptions>(DefaultDockerOptions, registration.options);
 
         // Backwards compatibility
         // tslint:disable:deprecation
@@ -103,11 +102,3 @@ const DockerBuildDefinition: GoalDefinition = {
     retryFeasible: true,
 };
 
-export function mergeOptions<OPTIONS>(defaults: OPTIONS, explicit: OPTIONS, configurationPath?: string): OPTIONS {
-    const options: OPTIONS = _.merge(defaults, explicit || {});
-    if (!!configurationPath) {
-        const configurationOptions = configurationValue<OPTIONS>(`sdm.${configurationPath}`, {} as any);
-        return _.merge(options, configurationOptions);
-    }
-    return options;
-}
