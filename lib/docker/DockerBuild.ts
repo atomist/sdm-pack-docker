@@ -101,4 +101,3 @@ const DockerBuildDefinition: GoalDefinition = {
     isolated: true,
     retryFeasible: true,
 };
-
