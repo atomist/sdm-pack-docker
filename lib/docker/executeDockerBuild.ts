@@ -24,6 +24,7 @@ import {
     ExecuteGoal,
     ExecuteGoalResult,
     LoggingProgressLog,
+    mergeOptions,
     ProjectAwareGoalInvocation,
     projectConfigurationValue,
     SdmGoalEvent,
@@ -111,7 +112,9 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
     return doWithProject(async gi => {
             const { goalEvent, context, project } = gi;
 
-            switch (options.builder) {
+            const optsToUse = mergeOptions<DockerOptions>(options, {}, "docker.build");
+
+            switch (optsToUse.builder) {
                 case "docker":
                     await checkIsBuilderAvailable("docker", "help");
                     break;
@@ -120,29 +123,29 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                     break;
             }
 
-            const imageName = await options.dockerImageNameCreator(project, goalEvent, options, context);
+            const imageName = await optsToUse.dockerImageNameCreator(project, goalEvent, optsToUse, context);
             const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
-            const dockerfilePath = await (options.dockerfileFinder ? options.dockerfileFinder(project) : "Dockerfile");
+            const dockerfilePath = await (optsToUse.dockerfileFinder ? optsToUse.dockerfileFinder(project) : "Dockerfile");
 
             // 1. run docker login
-            let result: ExecuteGoalResult = await dockerLogin(options, gi);
+            let result: ExecuteGoalResult = await dockerLogin(optsToUse, gi);
 
             if (result.code !== 0) {
                 return result;
             }
 
-            if (options.builder === "docker") {
+            if (optsToUse.builder === "docker") {
 
                 // 2. run docker build
                 const tags = _.flatten(images.map(i => ["-t", i]));
 
                 result = await gi.spawn(
                     "docker",
-                    ["build", ".", "-f", dockerfilePath, ...tags, ...options.builderArgs],
+                    ["build", ".", "-f", dockerfilePath, ...tags, ...optsToUse.builderArgs],
                     {
                         env: {
                             ...process.env,
-                            DOCKER_CONFIG: dockerConfigPath(options, gi.goalEvent),
+                            DOCKER_CONFIG: dockerConfigPath(optsToUse, gi.goalEvent),
                         },
                         log: gi.progressLog,
                     },
@@ -153,24 +156,24 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                 }
 
                 // 3. run docker push
-                result = await dockerPush(images, options, gi);
+                result = await dockerPush(images, optsToUse, gi);
 
                 if (result.code !== 0) {
                     return result;
                 }
 
-            } else if (options.builder === "kaniko") {
+            } else if (optsToUse.builder === "kaniko") {
 
                 // 2. run kaniko build
                 const builderArgs: string[] = [];
 
-                if (await pushEnabled(gi, options)) {
+                if (await pushEnabled(gi, optsToUse)) {
                     builderArgs.push(...images.map(i => `-d=${i}`), "--cache=true");
                 } else {
                     builderArgs.push("--no-push");
                 }
                 builderArgs.push(
-                    ...(options.builderArgs.length > 0 ? options.builderArgs : ["--snapshotMode=time", "--reproducible"]));
+                    ...(optsToUse.builderArgs.length > 0 ? optsToUse.builderArgs : ["--snapshotMode=time", "--reproducible"]));
 
                 // Check if base image cache dir is available
                 const cacheFilPath = _.get(gi, "configuration.sdm.cache.path", "/opt/data");
@@ -186,7 +189,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                     {
                         env: {
                             ...process.env,
-                            DOCKER_CONFIG: dockerConfigPath(options, gi.goalEvent),
+                            DOCKER_CONFIG: dockerConfigPath(optsToUse, gi.goalEvent),
                         },
                         log: gi.progressLog,
                     },
