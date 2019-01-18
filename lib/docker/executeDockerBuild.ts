@@ -239,9 +239,9 @@ async function dockerLogin(options: DockerOptions,
             });
 
     } else if (options.config) {
-        gi.progressLog.write("Authenticating with provided Docker config.json");
-        const dockerConfig = dockerConfigPath(options, gi.goalEvent);
-        await fs.ensureDir(dockerConfig);
+        gi.progressLog.write("Authenticating with provided Docker 'config.json'");
+        const dockerConfig = path.join(dockerConfigPath(options, gi.goalEvent), "config.json");
+        await fs.ensureDir(path.dirname(dockerConfig));
         await fs.writeFile(dockerConfig, options.config);
     } else {
         gi.progressLog.write("Skipping 'docker auth' because no credentials configured");
