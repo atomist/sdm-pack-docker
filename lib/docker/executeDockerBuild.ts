@@ -168,7 +168,10 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                 const builderArgs: string[] = [];
 
                 if (await pushEnabled(gi, optsToUse)) {
-                    builderArgs.push(...images.map(i => `-d=${i}`), "--cache=true");
+                    builderArgs.push(
+                        ...images.map(i => `-d=${i}`),
+                        "--cache=true",
+                        `--cache-repo=${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}-cache`);
                 } else {
                     builderArgs.push("--no-push");
                 }
