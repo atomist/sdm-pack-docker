@@ -31,7 +31,6 @@ import {
     spawnLog,
 } from "@atomist/sdm";
 import {
-    isInLocalMode,
     postLinkImageWebhook,
     readSdmVersion,
 } from "@atomist/sdm-core";
@@ -303,8 +302,9 @@ export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, s
 };
 
 async function checkIsBuilderAvailable(cmd: string, ...args: string[]): Promise<void> {
-    const result = await spawnLog(cmd, args, { log: new LoggingProgressLog("docker-build-check") });
-    if (result.code !== 0) {
+    try {
+        await spawnLog(cmd, args, { log: new LoggingProgressLog("docker-build-check") });
+    } catch (e) {
         throw new Error(`Configured Docker image builder '${cmd}' is not available`);
     }
 }
