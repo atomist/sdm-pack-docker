@@ -65,10 +65,11 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
     constructor(private readonly goalDetailsOrUniqueName: FulfillableGoalDetails | string = DefaultGoalNameGenerator.generateName("docker-build"),
                 ...dependsOn: Goal[]) {
 
-        super({
-            ...DockerBuildDefinition,
-            ...getGoalDefinitionFrom(goalDetailsOrUniqueName, DefaultGoalNameGenerator.generateName("docker-build")),
-        });
+        super(getGoalDefinitionFrom(
+                goalDetailsOrUniqueName,
+                DefaultGoalNameGenerator.generateName("docker-build"),
+                DockerBuildDefinition),
+        , ...dependsOn);
     }
 
     public with(registration: DockerBuildRegistration): this {
