@@ -296,7 +296,7 @@ export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, s
 
     return {
         registry: options.registry,
-        name,
+        name: name.toLowerCase(),
         tags,
     };
 };
