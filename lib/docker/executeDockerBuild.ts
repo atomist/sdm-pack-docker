@@ -38,6 +38,7 @@ import * as fs from "fs-extra";
 import * as _ from "lodash";
 import * as os from "os";
 import * as path from "path";
+import { cleanImageName } from "./name";
 
 /**
  * Options to configure the Docker image build
@@ -109,111 +110,111 @@ export type DockerImageNameCreator = (p: GitProject,
  */
 export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
     return doWithProject(async gi => {
-            const { goalEvent, context, project } = gi;
+        const { goalEvent, context, project } = gi;
 
-            const optsToUse = mergeOptions<DockerOptions>(options, {}, "docker.build");
+        const optsToUse = mergeOptions<DockerOptions>(options, {}, "docker.build");
 
-            switch (optsToUse.builder) {
-                case "docker":
-                    await checkIsBuilderAvailable("docker", "help");
-                    break;
-                case "kaniko":
-                    await checkIsBuilderAvailable("/kaniko/executor", "--help");
-                    break;
-            }
+        switch (optsToUse.builder) {
+            case "docker":
+                await checkIsBuilderAvailable("docker", "help");
+                break;
+            case "kaniko":
+                await checkIsBuilderAvailable("/kaniko/executor", "--help");
+                break;
+        }
 
-            const imageName = await optsToUse.dockerImageNameCreator(project, goalEvent, optsToUse, context);
-            const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
-            const dockerfilePath = await (optsToUse.dockerfileFinder ? optsToUse.dockerfileFinder(project) : "Dockerfile");
+        const imageName = await optsToUse.dockerImageNameCreator(project, goalEvent, optsToUse, context);
+        const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
+        const dockerfilePath = await (optsToUse.dockerfileFinder ? optsToUse.dockerfileFinder(project) : "Dockerfile");
 
-            // 1. run docker login
-            let result: ExecuteGoalResult = await dockerLogin(optsToUse, gi);
+        // 1. run docker login
+        let result: ExecuteGoalResult = await dockerLogin(optsToUse, gi);
+
+        if (result.code !== 0) {
+            return result;
+        }
+
+        if (optsToUse.builder === "docker") {
+
+            // 2. run docker build
+            const tags = _.flatten(images.map(i => ["-t", i]));
+
+            result = await gi.spawn(
+                "docker",
+                ["build", ".", "-f", dockerfilePath, ...tags, ...optsToUse.builderArgs],
+                {
+                    env: {
+                        ...process.env,
+                        DOCKER_CONFIG: dockerConfigPath(optsToUse, gi.goalEvent),
+                    },
+                    log: gi.progressLog,
+                },
+            );
 
             if (result.code !== 0) {
                 return result;
             }
 
-            if (optsToUse.builder === "docker") {
+            // 3. run docker push
+            result = await dockerPush(images, optsToUse, gi);
 
-                // 2. run docker build
-                const tags = _.flatten(images.map(i => ["-t", i]));
-
-                result = await gi.spawn(
-                    "docker",
-                    ["build", ".", "-f", dockerfilePath, ...tags, ...optsToUse.builderArgs],
-                    {
-                        env: {
-                            ...process.env,
-                            DOCKER_CONFIG: dockerConfigPath(optsToUse, gi.goalEvent),
-                        },
-                        log: gi.progressLog,
-                    },
-                );
-
-                if (result.code !== 0) {
-                    return result;
-                }
-
-                // 3. run docker push
-                result = await dockerPush(images, optsToUse, gi);
-
-                if (result.code !== 0) {
-                    return result;
-                }
-
-            } else if (optsToUse.builder === "kaniko") {
-
-                // 2. run kaniko build
-                const builderArgs: string[] = [];
-
-                if (await pushEnabled(gi, optsToUse)) {
-                    builderArgs.push(
-                        ...images.map(i => `-d=${i}`),
-                        "--cache=true",
-                        `--cache-repo=${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}-cache`);
-                } else {
-                    builderArgs.push("--no-push");
-                }
-                builderArgs.push(
-                    ...(optsToUse.builderArgs.length > 0 ? optsToUse.builderArgs : ["--snapshotMode=time", "--reproducible"]));
-
-                // Check if base image cache dir is available
-                const cacheFilPath = _.get(gi, "configuration.sdm.cache.path", "/opt/data");
-                if (_.get(gi, "configuration.sdm.cache.enabled") === true && (await fs.pathExists(cacheFilPath))) {
-                    const baseImageCache = path.join(cacheFilPath, "base-image-cache");
-                    await fs.mkdirs(baseImageCache);
-                    builderArgs.push(`--cache-dir=${baseImageCache}`, "--cache=true");
-                }
-
-                result = await gi.spawn(
-                    "/kaniko/executor",
-                    ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ..._.uniq(builderArgs)],
-                    {
-                        env: {
-                            ...process.env,
-                            DOCKER_CONFIG: dockerConfigPath(optsToUse, gi.goalEvent),
-                        },
-                        log: gi.progressLog,
-                    },
-                );
-
-                if (result.code !== 0) {
-                    return result;
-                }
-            }
-
-            // 4. create image link
-            if (await postLinkImageWebhook(
-                goalEvent.repo.owner,
-                goalEvent.repo.name,
-                goalEvent.sha,
-                images[0],
-                context.workspaceId)) {
+            if (result.code !== 0) {
                 return result;
-            } else {
-                return { code: 1, message: "Image link failed" };
             }
-        },
+
+        } else if (optsToUse.builder === "kaniko") {
+
+            // 2. run kaniko build
+            const builderArgs: string[] = [];
+
+            if (await pushEnabled(gi, optsToUse)) {
+                builderArgs.push(
+                    ...images.map(i => `-d=${i}`),
+                    "--cache=true",
+                    `--cache-repo=${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}-cache`);
+            } else {
+                builderArgs.push("--no-push");
+            }
+            builderArgs.push(
+                ...(optsToUse.builderArgs.length > 0 ? optsToUse.builderArgs : ["--snapshotMode=time", "--reproducible"]));
+
+            // Check if base image cache dir is available
+            const cacheFilPath = _.get(gi, "configuration.sdm.cache.path", "/opt/data");
+            if (_.get(gi, "configuration.sdm.cache.enabled") === true && (await fs.pathExists(cacheFilPath))) {
+                const baseImageCache = path.join(cacheFilPath, "base-image-cache");
+                await fs.mkdirs(baseImageCache);
+                builderArgs.push(`--cache-dir=${baseImageCache}`, "--cache=true");
+            }
+
+            result = await gi.spawn(
+                "/kaniko/executor",
+                ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ..._.uniq(builderArgs)],
+                {
+                    env: {
+                        ...process.env,
+                        DOCKER_CONFIG: dockerConfigPath(optsToUse, gi.goalEvent),
+                    },
+                    log: gi.progressLog,
+                },
+            );
+
+            if (result.code !== 0) {
+                return result;
+            }
+        }
+
+        // 4. create image link
+        if (await postLinkImageWebhook(
+            goalEvent.repo.owner,
+            goalEvent.repo.name,
+            goalEvent.sha,
+            images[0],
+            context.workspaceId)) {
+            return result;
+        } else {
+            return { code: 1, message: "Image link failed" };
+        }
+    },
         {
             readOnly: true,
             detachHead: false,
@@ -285,7 +286,7 @@ async function dockerPush(images: string[],
 }
 
 export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, sdmGoal, options, context) => {
-    const name = p.name;
+    const name = cleanImageName(p.name);
     const tags = [await readSdmVersion(sdmGoal.repo.owner, sdmGoal.repo.name,
         sdmGoal.repo.providerId, sdmGoal.sha, sdmGoal.branch, context)];
 
@@ -296,7 +297,7 @@ export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, s
 
     return {
         registry: options.registry,
-        name: name.toLowerCase(),
+        name,
         tags,
     };
 };
