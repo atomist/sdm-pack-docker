@@ -141,7 +141,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
 
             result = await gi.spawn(
                 "docker",
-                ["build", ".", "-f", dockerfilePath, ...tags, ...optsToUse.builderArgs],
+                ["build", "-f", dockerfilePath, ...tags, ...optsToUse.builderArgs, "."],
                 {
                     env: {
                         ...process.env,
