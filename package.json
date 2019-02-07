@@ -27,8 +27,11 @@
   "main": "./index.js",
   "types": "./index.d.ts",
   "dependencies": {
+    "@atomist/tree-path": "^1.0.1",
+    "dockerfile-ast": "0.0.12",
     "lodash": "^4.17.10",
-    "portfinder": "^1.0.19"
+    "portfinder": "^1.0.19",
+    "vscode-languageserver-types": "^3.13.0"
   },
   "peerDependencies": {
     "@atomist/automation-client": ">=1.1.0",

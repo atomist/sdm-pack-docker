@@ -33,3 +33,5 @@ export {
     DockerProgressReporter,
     DockerProgressTests,
 } from "./lib/docker/DockerProgressReporter";
+
+export { DockerFileParser } from "./lib/parse/DockerFileParser";
