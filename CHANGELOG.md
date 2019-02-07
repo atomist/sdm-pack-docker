@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased](https://github.com/atomist/sdm-pack-docker/compare/1.0.2...HEAD)
 
+### Added
+
+-   Allow docker config to be passed to DockerBuild. [8bff456](https://github.com/atomist/sdm-pack-docker/commit/8bff45672582ac2b57a03edd1149a08c088dd0f9)
+
 ### Changed
 
 -   Remove deprecation warnings. [83d443d](https://github.com/atomist/sdm-pack-docker/commit/83d443dc4f09191c5eb9f248168858ed82b056db)

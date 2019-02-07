@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018 Atomist, Inc.
+ * Copyright © 2019 Atomist, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import {
     GoalDefinition,
     ImplementationRegistration,
     IndependentOfEnvironment,
+    mergeOptions,
 } from "@atomist/sdm";
 import { DockerProgressReporter } from "./DockerProgressReporter";
 import {
@@ -36,9 +37,25 @@ import {
  * Registration for a certain docker build and push configuration
  */
 export interface DockerBuildRegistration extends Partial<ImplementationRegistration> {
-    options: DockerOptions;
+
+    /**
+     * Options to configure the docker build
+     */
+    options?: DockerOptions;
+
+    /**
+     * @deprecated use options.dockerImageNameCreator
+     */
     imageNameCreator?: DockerImageNameCreator;
 }
+
+const DefaultDockerOptions: DockerOptions = {
+    dockerImageNameCreator: DefaultDockerImageNameCreator,
+    dockerfileFinder: async () => "Dockerfile",
+    push: false,
+    builder: "docker",
+    builderArgs: [],
+};
 
 /**
  * Goal that performs docker build and push depending on the provided options
@@ -48,18 +65,25 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
     constructor(private readonly goalDetailsOrUniqueName: FulfillableGoalDetails | string = DefaultGoalNameGenerator.generateName("docker-build"),
                 ...dependsOn: Goal[]) {
 
-        super({
-            ...DockerBuildDefinition,
-            ...getGoalDefinitionFrom(goalDetailsOrUniqueName, DefaultGoalNameGenerator.generateName("docker-build")),
-        });
+        super(getGoalDefinitionFrom(
+            goalDetailsOrUniqueName,
+            DefaultGoalNameGenerator.generateName("docker-build"),
+            DockerBuildDefinition)
+            , ...dependsOn);
     }
 
     public with(registration: DockerBuildRegistration): this {
+        const optsToUse = mergeOptions<DockerOptions>(DefaultDockerOptions, registration.options);
+
+        // Backwards compatibility
+        // tslint:disable:deprecation
+        if (!!registration.imageNameCreator && (!registration.options || !registration.options.dockerImageNameCreator)) {
+            optsToUse.dockerImageNameCreator = registration.imageNameCreator;
+        }
+        // tslint:enable:deprecation
+
         this.addFulfillment({
-            goalExecutor: executeDockerBuild(
-                registration.imageNameCreator ? registration.imageNameCreator : DefaultDockerImageNameCreator,
-                registration.options,
-            ),
+            goalExecutor: executeDockerBuild(optsToUse),
             name: DefaultGoalNameGenerator.generateName("docker-builder"),
             progressReporter: DockerProgressReporter,
             ...registration as ImplementationRegistration,
