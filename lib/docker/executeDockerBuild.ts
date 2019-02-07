@@ -16,7 +16,8 @@
 
 import {
     GitProject,
-    HandlerContext, logger,
+    HandlerContext,
+    logger,
     Success,
 } from "@atomist/automation-client";
 import {
