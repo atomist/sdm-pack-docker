@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018 Atomist, Inc.
+ * Copyright © 2019 Atomist, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,12 @@ import {
     Success,
 } from "@atomist/automation-client";
 import {
+    doWithProject,
     ExecuteGoal,
     ExecuteGoalResult,
-    GoalInvocation,
-    ProgressLog,
+    ProjectAwareGoalInvocation,
     projectConfigurationValue,
     SdmGoalEvent,
-    spawnAndLog,
 } from "@atomist/sdm";
 import {
     isInLocalMode,
@@ -76,97 +75,83 @@ export type DockerImageNameCreator = (p: GitProject,
  */
 export function executeDockerBuild(imageNameCreator: DockerImageNameCreator,
                                    options: DockerOptions): ExecuteGoal {
-    return async (goalInvocation: GoalInvocation): Promise<void | ExecuteGoalResult> => {
-        const { configuration, sdmGoal, credentials, id, context, progressLog } = goalInvocation;
+    return doWithProject(async gi => {
+        const { goalEvent, context, project } = gi;
 
-        return configuration.sdm.projectLoader.doWithProject({
-                credentials,
-                id,
-                context,
-                readOnly: false,
-                cloneOptions: { detachHead: true },
-            },
-            async p => {
+        const imageName = await imageNameCreator(project, goalEvent, options, context);
+        const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
+        const dockerfilePath = await (options.dockerfileFinder ? options.dockerfileFinder(project) : "Dockerfile");
 
-                const opts = {
-                    cwd: p.baseDir,
-                };
+        // 1. run docker login
+        let result: ExecuteGoalResult = await dockerLogin(options, gi);
 
-                const imageName = await imageNameCreator(p, sdmGoal, options, context);
-                const images = imageName.tags.map(tag => `${imageName.registry ? `${imageName.registry}/` : ""}${imageName.name}:${tag}`);
-                const dockerfilePath = await (options.dockerfileFinder ? options.dockerfileFinder(p) : "Dockerfile");
+        if (result.code !== 0) {
+            return result;
+        }
 
-                // 1. run docker login
-                let result: ExecuteGoalResult = await dockerLogin(options, progressLog);
+        // 2. run docker build
+        const tags = _.flatten(images.map(i => ["-t", i]));
+        result = await gi.spawn(
+            "docker",
+            ["build", ".", "-f", dockerfilePath, ...tags],
+        );
 
-                if (result.code !== 0) {
-                    return result;
-                }
+        if (result.code !== 0) {
+            return result;
+        }
 
-                // 2. run docker build
-                const tags = _.flatten(images.map(i => ["-t", i]));
-                result = await spawnAndLog(
-                    progressLog,
-                    "docker",
-                    ["build", ".", "-f", dockerfilePath, ...tags],
-                    opts,
-                );
+        // 3. run docker push
+        result = await dockerPush(images, options, gi);
 
-                if (result.code !== 0) {
-                    return result;
-                }
+        if (result.code !== 0) {
+            return result;
+        }
 
-                // 3. run docker push
-                result = await dockerPush(images, p, options, progressLog);
-
-                if (result.code !== 0) {
-                    return result;
-                }
-
-                // 4. create image link
-                if (await postLinkImageWebhook(
-                    sdmGoal.repo.owner,
-                    sdmGoal.repo.name,
-                    sdmGoal.sha,
-                    images[0],
-                    context.workspaceId)) {
-                    return result;
-                } else {
-                    return { code: 1, message: "Image link failed" };
-                }
-            });
-    };
+        // 4. create image link
+        if (await postLinkImageWebhook(
+            goalEvent.repo.owner,
+            goalEvent.repo.name,
+            goalEvent.sha,
+            images[0],
+            context.workspaceId)) {
+            return result;
+        } else {
+            return { code: 1, message: "Image link failed" };
+        }
+    }, {
+        readOnly: false,
+        detachHead: true,
+    });
 }
 
 async function dockerLogin(options: DockerOptions,
-                           progressLog: ProgressLog): Promise<ExecuteGoalResult> {
+                           gi: ProjectAwareGoalInvocation): Promise<ExecuteGoalResult> {
 
     if (options.user && options.password) {
-        progressLog.write("Running 'docker login'");
+        gi.progressLog.write("Running 'docker login'");
         const loginArgs: string[] = ["login", "--username", options.user, "--password", options.password];
         if (/[^A-Za-z0-9]/.test(options.registry)) {
             loginArgs.push(options.registry);
         }
 
         // 2. run docker login
-        return spawnAndLog(
-            progressLog,
+        return gi.spawn(
             "docker",
             loginArgs,
             {
                 logCommand: false,
+                log: gi.progressLog,
             });
 
     } else {
-        progressLog.write("Skipping 'docker login' because user and password are not configured");
+        gi.progressLog.write("Skipping 'docker login' because user and password are not configured");
         return Success;
     }
 }
 
 async function dockerPush(images: string[],
-                          project: GitProject,
                           options: DockerOptions,
-                          progressLog: ProgressLog): Promise<ExecuteGoalResult> {
+                          gi: ProjectAwareGoalInvocation): Promise<ExecuteGoalResult> {
 
     let push;
     // tslint:disable-next-line:no-boolean-literal-compare
@@ -178,19 +163,18 @@ async function dockerPush(images: string[],
 
     let result = Success;
 
-    if ((await projectConfigurationValue("docker.push.enabled", project, push))) {
+    if ((await projectConfigurationValue("docker.push.enabled", gi.project, push))) {
 
         if (!options.user || !options.password) {
             const message = "Required configuration missing for pushing docker image. Please make sure to set " +
                 "'registry', 'user' and 'password' in your configuration.";
-            progressLog.write(message);
+            gi.progressLog.write(message);
             return { code: 1, message };
         }
 
         // 1. run docker push
         for (const image of images) {
-            result = await spawnAndLog(
-                progressLog,
+            result = await gi.spawn(
                 "docker",
                 ["push", image],
             );
@@ -200,7 +184,7 @@ async function dockerPush(images: string[],
             }
         }
     } else {
-        progressLog.write("Skipping 'docker push'");
+        gi.progressLog.write("Skipping 'docker push'");
     }
 
     return result;
