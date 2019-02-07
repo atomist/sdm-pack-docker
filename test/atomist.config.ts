@@ -35,7 +35,7 @@ import {
     MvnPackage,
     MvnVersion,
 } from "@atomist/sdm-pack-spring";
-import {DockerBuild} from "../lib/docker/DockerBuild";
+import { DockerBuild } from "../lib/docker/DockerBuild";
 
 export function machineMaker(config: SoftwareDeliveryMachineConfiguration): SoftwareDeliveryMachine {
 
