@@ -13,7 +13,49 @@ software.
 
 ## Usage
 
-TODO
+Configuration Reference:
+
+```json
+{
+  ...
+  sdm: {
+    "docker": {
+      "build": {
+        "push": boolean // Optional. Enable or disable pushes of images.
+      },
+      "tag": {
+        "latest": boolean // Optional. Should new images also be tagged with latest
+      }
+    },
+    "cache": {
+      "enabled": boolean // Optional. Enable or disable caching support (specific to kaniko)
+      "path": string // Optionally configure a new FS location for the cache path.  Defaults to /opt/data
+    },
+    "dockerinfo": {
+       "registries": [
+         { // Docker hub example
+           "username": string, // Optional
+           "password": string, // Optional
+           "url": "registry.hub.docker.com/<user/org>",         // Full path to your registry - including user/org
+           "displayUrl": "https://hub.docker.com/r/<user/org>", // Optional.  Customized display URL.  Will replace url.
+           "displayBrowsePath": "/tags",                        // Optional.  Customized suffix.  Will replace :<version> in the full image tag
+           "label": "Dockerhub",                                // Optional.  Display a friendly name for this docker registry (otherwise use full url)
+           "display": true                                      // Optional.  Should we include this link with the goal externalUrls
+         },
+         { // GCR Example
+           "url": "gcr.io/<your project name>-<your project id>",
+           "display": true,
+           "label": "GCR",
+           "displayUrl": "https://console.cloud.google.com/gcr/images/<your project name>-<your project id>/GLOBAL",
+           "displayBrowsePath": "?project=<your project id>&gcrImageListsize=30"
+         }
+       ]
+    }
+  }
+
+}
+
+```
 
 ## Support
 
