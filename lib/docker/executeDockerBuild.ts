@@ -16,7 +16,7 @@
 
 import {
     GitProject,
-    HandlerContext,
+    HandlerContext, logger,
     Success,
 } from "@atomist/automation-client";
 import {
@@ -47,6 +47,11 @@ export interface DockerRegistry {
     url: string;
 
     /**
+     * Should this registry be displayed with the goal status after a push? Default true.
+     */
+    display?: boolean;
+
+    /**
      * Display Url - ie the url humans can go to
      * assumes <url>/<image>
      */
@@ -69,6 +74,7 @@ export interface DockerRegistry {
     label?: string;
     username?: string;
     password?: string;
+
 }
 /**
  * Options to configure the Docker image build
@@ -155,8 +161,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                 {
                     env: {
                         ...process.env,
-                        // TODO: Cleanup the intent here
-                        DOCKER_CONFIG: dockerConfigPath(optsToUse.registries[0], optsToUse.config, gi.goalEvent),
+                        DOCKER_CONFIG: dockerConfigPath(optsToUse, gi.goalEvent),
                     },
                     log: gi.progressLog,
                 },
@@ -180,7 +185,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                 builderArgs.push(
                     ...imageName.tags.map(i => `-d=${i}`),
                     "--cache=true",
-                    `--cache-repo=${imageName.tags[0].split(":")[1]}-cache`);
+                );
             } else {
                 builderArgs.push("--no-push");
             }
@@ -201,8 +206,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                 {
                     env: {
                         ...process.env,
-                        // TODO: Cleanup the intent here
-                        DOCKER_CONFIG: dockerConfigPath(optsToUse.registries[0], optsToUse.config, gi.goalEvent),
+                        DOCKER_CONFIG: dockerConfigPath(optsToUse, gi.goalEvent),
                     },
                     log: gi.progressLog,
                 },
@@ -236,7 +240,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
 }
 
 async function dockerLogin(options: DockerRegistry,
-                           config: string | undefined,
+                           optsToUse: DockerOptions,
                            gi: ProjectAwareGoalInvocation): Promise<ExecuteGoalResult> {
 
     if (options.username && options.password) {
@@ -255,11 +259,11 @@ async function dockerLogin(options: DockerRegistry,
                 log: gi.progressLog,
             });
 
-    } else if (config) {
+    } else if (optsToUse.config) {
         gi.progressLog.write("Authenticating with provided Docker 'config.json'");
-        const dockerConfig = path.join(dockerConfigPath(options, config, gi.goalEvent), "config.json");
+        const dockerConfig = path.join(dockerConfigPath(optsToUse, gi.goalEvent), "config.json");
         await fs.ensureDir(path.dirname(dockerConfig));
-        await fs.writeFile(dockerConfig, config);
+        await fs.writeFile(dockerConfig, optsToUse.config);
     } else {
         gi.progressLog.write("Skipping 'docker auth' because no credentials configured");
     }
@@ -270,46 +274,43 @@ async function dockerPush(images: string[],
                           options: DockerOptions,
                           gi: ProjectAwareGoalInvocation): Promise<ExecuteGoalResult> {
 
-    let result = Success;
-
     if (await pushEnabled(gi, options)) {
 
         // Login to registry(s)
         await Promise.all(
             options.registries.map(async r => {
-                const loginResult = await dockerLogin(r, options.config, gi);
+                const loginResult = await dockerLogin(r, options, gi);
                 if (loginResult.code !== 0) {
-                    return loginResult;
+                    throw new Error(`Failed login for registry => ${r.url}!`);
                 }
             }),
         );
 
-        // 1. run docker push
         await Promise.all(
             images.map(async image => {
-                result = await gi.spawn(
+                const pushResult = await gi.spawn(
                     "docker",
                     ["push", image],
                     {
                         env: {
                             ...process.env,
-                            // TODO: Determine intent and update
-                            DOCKER_CONFIG: dockerConfigPath(options.registries[0], options.config, gi.goalEvent),
+                            DOCKER_CONFIG: dockerConfigPath(options, gi.goalEvent),
                         },
                         log: gi.progressLog,
                     },
                 );
 
-                if (result && result.code !== 0) {
-                    return result;
+                if (pushResult.code !== 0) {
+                    throw new Error(`Failed to push image ${image}!  Error (code: ${pushResult.code}) => ${pushResult.stderr}`);
                 }
+
             }),
         );
     } else {
         gi.progressLog.write("Skipping 'docker push'");
     }
 
-    return result;
+    return {code: 0};
 }
 
 export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, sdmGoal, options, context) => {
@@ -346,18 +347,16 @@ async function pushEnabled(gi: ProjectAwareGoalInvocation, options: DockerOption
     // tslint:disable-next-line:no-boolean-literal-compare
     if (options.push === true || options.push === false) {
         push = options.push;
+    } else if (options.registries.some(r => !!(r.username && r.password)) || !!options.config) {
+        push = true;
     }
-    // TODO: What does this do?
-    // else if ((!!options.user && !!options.password) || !!options.config) {
-    //     push = true;
-    // }
     return projectConfigurationValue("docker.build.push", gi.project, push);
 }
 
-function dockerConfigPath(options: DockerRegistry, config: string | undefined, goalEvent: SdmGoalEvent): string {
-    if (options && (!!options.username && !!options.password)) {
+function dockerConfigPath(options: DockerOptions, goalEvent: SdmGoalEvent): string {
+    if (options.registries.some(r => !!(r.username && r.password))) {
         return path.join(os.homedir(), ".docker");
-    } else if (!!config) {
+    } else if (!!options.config) {
         return path.join(os.homedir(), `.docker-${goalEvent.goalSetId}`);
     }
 }
@@ -365,16 +364,18 @@ function dockerConfigPath(options: DockerRegistry, config: string | undefined, g
 function getExternalUrls(tags: string[], options: DockerOptions): ExecuteGoalResult["externalUrls"] {
     const externalUrls = tags.map(t => {
         const reg = options.registries.filter(r => t.includes(r.url))[0];
-        let url = !!reg.displayUrl ? t.replace(reg.url, reg.displayUrl) : t;
+        if (reg.display !== false) {
+            let url = !!reg.displayUrl ? t.replace(reg.url, reg.displayUrl) : t;
 
-        if (!!reg.displayBrowsePath) {
-           const replace = url.split(":").pop();
-           url = url.replace(`:${replace}`, `${reg.displayBrowsePath}`);
-        }
-        if (!!reg.label) {
-            return {label: reg.label, url };
-        } else {
-            return {url};
+            if (!!reg.displayBrowsePath) {
+                const replace = url.split(":").pop();
+                url = url.replace(`:${replace}`, `${reg.displayBrowsePath}`);
+            }
+            if (!!reg.label) {
+                return {label: reg.label, url };
+            } else {
+                return {url};
+            }
         }
     });
 
