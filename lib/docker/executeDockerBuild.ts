@@ -180,7 +180,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                 builderArgs.push(
                     ...imageName.tags.map(i => `-d=${i}`),
                     "--cache=true",
-                    `--cache-repo=${imageName.tags[0]}-cache`);
+                    `--cache-repo=${imageName.tags[0].split(":")[1]}-cache`);
             } else {
                 builderArgs.push("--no-push");
             }
