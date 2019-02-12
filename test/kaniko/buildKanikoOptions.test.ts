@@ -116,7 +116,7 @@ describe("buildKanikoOptions", () => {
         });
         after(() => {
             fsMock.restore();
-        })
+        });
         it("should enable cache and set default cache dir", async () => {
             const config = {
                 sdm: {cache: {enabled: true}, docker: {build: {push: false}, latest: true}},
