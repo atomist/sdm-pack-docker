@@ -29,7 +29,7 @@ Configuration Reference:
     },
     "cache": {
       "enabled": boolean // Optional. Enable or disable caching support (specific to kaniko)
-      "path": string // Optionally configure a new FS location for the cache path.  Defaults to /opt/data
+      "path": string // Optionally configure a new FS location for the cache path.  Defaults to /opt/data.  This path must exist.
     },
     "dockerinfo": {
        "registries": [

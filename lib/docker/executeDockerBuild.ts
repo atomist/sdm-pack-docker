@@ -151,7 +151,11 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
         // Determine image name, registry urls
         const imageName = await optsToUse.dockerImageNameCreator(project, goalEvent, optsToUse, context);
         const dockerfilePath = await (optsToUse.dockerfileFinder ? optsToUse.dockerfileFinder(project) : "Dockerfile");
-        const externalUrls = getExternalUrls(imageName.tags, optsToUse);
+
+        let externalUrls: ExecuteGoalResult["externalUrls"] = [];
+        if (await pushEnabled(gi, options)) {
+            externalUrls = getExternalUrls(imageName.tags, optsToUse);
+        }
 
         // Execute Docker build/push (as configured)
         let result: ExecuteGoalResult;
@@ -371,7 +375,6 @@ export async function buildKanikoOptions(
     if (await pushEnabled(gi, options)) {
         builderArgs.push(
             ...imageName.tags.map(i => `-d=${i}`),
-            "--cache=true",
         );
     } else {
         builderArgs.push("--no-push");
@@ -379,10 +382,14 @@ export async function buildKanikoOptions(
     builderArgs.push(
         ...(options.builderArgs.length > 0 ? options.builderArgs : ["--snapshotMode=time", "--reproducible"]));
 
-    // Check if base image cache dir is available
-    const cacheFilPath = _.get(gi, "configuration.sdm.cache.path", "/opt/data");
-    if (_.get(gi, "configuration.sdm.cache.enabled") === true && (await fs.pathExists(cacheFilPath))) {
-        const baseImageCache = path.join(cacheFilPath, "base-image-cache");
+    // If the cache is enabled, setup caching location
+    const cacheEnabled = _.get(gi, "configuration.sdm.cache.enabled", false);
+    const cacheFilePath = _.get(gi, "configuration.sdm.cache.path", "/opt/data");
+    if (cacheEnabled === true) {
+        if (!await fs.pathExists(cacheFilePath)) {
+            throw new Error(`Cannot enable Kaniko cache, path ${cacheFilePath} doesn't exist!`);
+        }
+        const baseImageCache = path.join(cacheFilePath, "base-image-cache");
         await fs.mkdirs(baseImageCache);
         builderArgs.push(`--cache-dir=${baseImageCache}`, "--cache=true");
     }

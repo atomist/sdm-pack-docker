@@ -16,6 +16,7 @@
 
 import { InMemoryProject } from "@atomist/automation-client";
 import * as assert from "assert";
+import * as fsMock from "mock-fs";
 import { buildKanikoOptions } from "../../lib/docker/executeDockerBuild";
 
 describe("buildKanikoOptions", () => {
@@ -67,7 +68,6 @@ describe("buildKanikoOptions", () => {
                 "--snapshotMode=time",
                 "--reproducible",
                 ...imageName.tags.map(i => `-d=${i}`),
-                "--cache=true",
             ];
 
             const result = await buildKanikoOptions(imageName, gi as any, options as any);
@@ -100,12 +100,134 @@ describe("buildKanikoOptions", () => {
             const expected = [
                 "--snapshotMode=full",
                 ...imageName.tags.map(i => `-d=${i}`),
-                "--cache=true",
                 "--cleanup",
             ];
 
             const result = await buildKanikoOptions(imageName, gi as any, options as any);
             assert.deepStrictEqual(result.sort(), expected.sort());
+        });
+    });
+    describe("cache options", () => {
+        before(() => {
+            fsMock({
+                "/opt/data": {},
+                "/opt/newthing": {},
+            });
+        });
+        after(() => {
+            fsMock.restore();
+        })
+        it("should enable cache and set default cache dir", async () => {
+            const config = {
+                sdm: {cache: {enabled: true}, docker: {build: {push: false}, latest: true}},
+            };
+            (global as any).__runningAutomationClient = {
+                configuration: {
+                    ...config,
+                },
+            };
+            const p = InMemoryProject.of({path: ".atomist/config.json", content: "{}"});
+            const options = { // DockerOptions
+                push: true,
+                builderArgs: [] as any,
+            };
+            const gi = { // ProjectAwareGoalInvocation
+                project: p,
+                configuration: {
+                    ...config,
+                },
+            };
+            const imageName = {
+                name: "fake/fakeimage",
+                tags: [
+                    "localhost:5000/fake/fakeimage:0.1.0-SNAPSHOT-master.20190207134057",
+                    "localhost:5000/fake/fakeimage:latest",
+                ],
+            };
+
+            const expected = [
+                "--snapshotMode=time",
+                "--reproducible",
+                "--cache=true",
+                "--cache-dir=/opt/data/base-image-cache",
+                ...imageName.tags.map(i => `-d=${i}`),
+            ];
+
+            const result = await buildKanikoOptions(imageName, gi as any, options as any);
+            assert.deepStrictEqual(result.sort(), expected.sort());
+        });
+        it("should enable cache and set custom cache dir", async () => {
+            const config = {
+                sdm: {cache: {enabled: true, path: "/opt/newthing"}, docker: {build: {push: false}, latest: true}},
+            };
+            (global as any).__runningAutomationClient = {
+                configuration: {
+                    ...config,
+                },
+            };
+            const p = InMemoryProject.of({path: ".atomist/config.json", content: "{}"});
+            const options = { // DockerOptions
+                push: false,
+                builderArgs: [] as any,
+            };
+            const gi = { // ProjectAwareGoalInvocation
+                project: p,
+                configuration: {
+                    ...config,
+                },
+            };
+            const imageName = {
+                name: "fake/fakeimage",
+                tags: [
+                    "localhost:5000/fake/fakeimage:0.1.0-SNAPSHOT-master.20190207134057",
+                    "localhost:5000/fake/fakeimage:latest",
+                ],
+            };
+
+            const expected = [
+                "--snapshotMode=time",
+                "--reproducible",
+                "--no-push",
+                "--cache=true",
+                "--cache-dir=/opt/newthing/base-image-cache",
+            ];
+
+            const result = await buildKanikoOptions(imageName, gi as any, options as any);
+            assert.deepStrictEqual(result.sort(), expected.sort());
+        });
+        it("should error for invalid cache path location", async () => {
+            const config = {
+                sdm: {cache: {enabled: true, path: "/opt/notathing"}, docker: {build: {push: false}, latest: true}},
+            };
+            (global as any).__runningAutomationClient = {
+                configuration: {
+                    ...config,
+                },
+            };
+            const p = InMemoryProject.of({path: ".atomist/config.json", content: "{}"});
+            const options = { // DockerOptions
+                push: false,
+                builderArgs: [] as any,
+            };
+            const gi = { // ProjectAwareGoalInvocation
+                project: p,
+                configuration: {
+                    ...config,
+                },
+            };
+            const imageName = {
+                name: "fake/fakeimage",
+                tags: [
+                    "localhost:5000/fake/fakeimage:0.1.0-SNAPSHOT-master.20190207134057",
+                    "localhost:5000/fake/fakeimage:latest",
+                ],
+            };
+
+            try {
+                await buildKanikoOptions(imageName, gi as any, options as any);
+            } catch (e) {
+                assert.strictEqual(e.message, "Cannot enable Kaniko cache, path /opt/notathing doesn't exist!");
+            }
         });
     });
 });
