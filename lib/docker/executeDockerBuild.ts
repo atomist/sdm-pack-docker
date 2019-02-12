@@ -362,7 +362,11 @@ function getExternalUrls(tags: string[], options: DockerOptions): ExecuteGoalRes
     return _.uniqBy(externalUrls, "url");
 }
 
-export async function buildKanikoOptions(imageName: {name: string, tags: string[]}, gi: ProjectAwareGoalInvocation, options: DockerOptions): Promise<string[]> {
+export async function buildKanikoOptions(
+    imageName: {name: string, tags: string[]},
+    gi: ProjectAwareGoalInvocation,
+    options: DockerOptions): Promise<string[]> {
+
     const builderArgs: string[] = [];
     if (await pushEnabled(gi, options)) {
         builderArgs.push(
