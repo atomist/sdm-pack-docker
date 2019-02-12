@@ -138,6 +138,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
 
         const optsToUse = mergeOptions<DockerOptions>(options, {}, "docker.build");
 
+        // Test if desired builder is present, error if not
         switch (optsToUse.builder) {
             case "docker":
                 await checkIsBuilderAvailable("docker", "help");
@@ -147,15 +148,15 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                 break;
         }
 
+        // Determine image name, registry urls
         const imageName = await optsToUse.dockerImageNameCreator(project, goalEvent, optsToUse, context);
         const dockerfilePath = await (optsToUse.dockerfileFinder ? optsToUse.dockerfileFinder(project) : "Dockerfile");
         const externalUrls = getExternalUrls(imageName.tags, optsToUse);
 
+        // Execute Docker build/push (as configured)
         let result: ExecuteGoalResult;
         if (optsToUse.builder === "docker") {
-
             const tags = _.flatten(imageName.tags.map(i => ["-t", i]));
-
             result = await gi.spawn(
                 "docker",
                 ["build", "-f", dockerfilePath, ...tags, ...optsToUse.builderArgs, "."],
@@ -178,29 +179,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
             }
 
         } else if (optsToUse.builder === "kaniko") {
-
-            // 2. run kaniko build
-            const builderArgs: string[] = [];
-
-            if (await pushEnabled(gi, optsToUse)) {
-                builderArgs.push(
-                    ...imageName.tags.map(i => `-d=${i}`),
-                    "--cache=true",
-                );
-            } else {
-                builderArgs.push("--no-push");
-            }
-            builderArgs.push(
-                ...(optsToUse.builderArgs.length > 0 ? optsToUse.builderArgs : ["--snapshotMode=time", "--reproducible"]));
-
-            // Check if base image cache dir is available
-            const cacheFilPath = _.get(gi, "configuration.sdm.cache.path", "/opt/data");
-            if (_.get(gi, "configuration.sdm.cache.enabled") === true && (await fs.pathExists(cacheFilPath))) {
-                const baseImageCache = path.join(cacheFilPath, "base-image-cache");
-                await fs.mkdirs(baseImageCache);
-                builderArgs.push(`--cache-dir=${baseImageCache}`, "--cache=true");
-            }
-
+            const builderArgs = await buildKanikoOptions(imageName, gi, optsToUse);
             result = await gi.spawn(
                 "/kaniko/executor",
                 ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ..._.uniq(builderArgs)],
@@ -218,7 +197,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
             }
         }
 
-        // 4. create image link
+        // Create image link
         if (await postLinkImageWebhook(
             goalEvent.repo.owner,
             goalEvent.repo.name,
@@ -381,4 +360,27 @@ function getExternalUrls(tags: string[], options: DockerOptions): ExecuteGoalRes
     });
 
     return _.uniqBy(externalUrls, "url");
+}
+
+export async function buildKanikoOptions(imageName: {name: string, tags: string[]}, gi: ProjectAwareGoalInvocation, options: DockerOptions): Promise<string[]> {
+    const builderArgs: string[] = [];
+    if (await pushEnabled(gi, options)) {
+        builderArgs.push(
+            ...imageName.tags.map(i => `-d=${i}`),
+            "--cache=true",
+        );
+    } else {
+        builderArgs.push("--no-push");
+    }
+    builderArgs.push(
+        ...(options.builderArgs.length > 0 ? options.builderArgs : ["--snapshotMode=time", "--reproducible"]));
+
+    // Check if base image cache dir is available
+    const cacheFilPath = _.get(gi, "configuration.sdm.cache.path", "/opt/data");
+    if (_.get(gi, "configuration.sdm.cache.enabled") === true && (await fs.pathExists(cacheFilPath))) {
+        const baseImageCache = path.join(cacheFilPath, "base-image-cache");
+        await fs.mkdirs(baseImageCache);
+        builderArgs.push(`--cache-dir=${baseImageCache}`, "--cache=true");
+    }
+    return builderArgs;
 }
