@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import {InMemoryProject} from "@atomist/automation-client";
+import { InMemoryProject } from "@atomist/automation-client";
 import * as assert from "assert";
-import {buildKanikoOptions} from "../../lib/docker/executeDockerBuild";
+import { buildKanikoOptions } from "../../lib/docker/executeDockerBuild";
 
 describe("buildKanikoOptions", () => {
     describe("push disabled", () => {
