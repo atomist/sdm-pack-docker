@@ -15,15 +15,15 @@
  */
 
 import {InMemoryProject} from "@atomist/automation-client";
-import {buildKanikoOptions} from "../../lib/docker/executeDockerBuild";
 import * as assert from "assert";
+import {buildKanikoOptions} from "../../lib/docker/executeDockerBuild";
 
 describe("buildKanikoOptions", () => {
     describe("push disabled", () => {
         it("should run a build with --no-push", async () => {
             (global as any).__runningAutomationClient = {
                 configuration: {
-                    sdm: {cache: {enabled: false}, docker: {build: {push: false}}}
+                    sdm: {cache: {enabled: false}, docker: {build: {push: false}}},
                 },
             };
             const p = InMemoryProject.of({path: ".atomist/config.json", content: "{}"});
@@ -108,4 +108,4 @@ describe("buildKanikoOptions", () => {
             assert.deepStrictEqual(result.sort(), expected.sort());
         });
     });
-})
+});
