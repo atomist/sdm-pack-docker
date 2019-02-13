@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 -   Allow docker config to be passed to DockerBuild. [8bff456](https://github.com/atomist/sdm-pack-docker/commit/8bff45672582ac2b57a03edd1149a08c088dd0f9)
+-   Add support for using kaniko as docker builder. [#40](https://github.com/atomist/sdm-pack-docker/issues/40)
 
 ### Changed
 
