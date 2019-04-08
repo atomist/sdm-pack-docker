@@ -119,7 +119,6 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
         const { goalEvent, context, project } = gi;
 
         const optsToUse = mergeOptions<DockerOptions>(options, {}, "docker.build");
-        optsToUse.builderPath = (optsToUse.builderPath) ? optsToUse.builderPath : ".";
 
         switch (optsToUse.builder) {
             case "docker":
