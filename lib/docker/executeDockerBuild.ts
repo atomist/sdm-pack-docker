@@ -95,6 +95,12 @@ export interface DockerOptions {
      * Optional arguments passed to the docker image builder
      */
     builderArgs?: string[];
+
+    /**
+     * Path relative to base of project to build.  If not provided,
+     * ".", i.e., the project base directory, is used.
+     */
+    builderPath?: string;
 }
 
 export type DockerImageNameCreator = (p: GitProject,
@@ -113,6 +119,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
         const { goalEvent, context, project } = gi;
 
         const optsToUse = mergeOptions<DockerOptions>(options, {}, "docker.build");
+        optsToUse.builderPath = (optsToUse.builderPath) ? optsToUse.builderPath : ".";
 
         switch (optsToUse.builder) {
             case "docker":
@@ -141,7 +148,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
 
             result = await gi.spawn(
                 "docker",
-                ["build", "-f", dockerfilePath, ...tags, ...optsToUse.builderArgs, "."],
+                ["build", "-f", dockerfilePath, ...tags, ...optsToUse.builderArgs, optsToUse.builderPath],
                 {
                     env: {
                         ...process.env,
@@ -186,9 +193,10 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
                 builderArgs.push(`--cache-dir=${baseImageCache}`, "--cache=true");
             }
 
+            const kanikoContext = `dir://${project.baseDir}` + ((optsToUse.builderPath === ".") ? "" : `/${optsToUse.builderPath}`);
             result = await gi.spawn(
                 "/kaniko/executor",
-                ["--dockerfile", dockerfilePath, "--context", `dir://${project.baseDir}`, ..._.uniq(builderArgs)],
+                ["--dockerfile", dockerfilePath, "--context", kanikoContext, ..._.uniq(builderArgs)],
                 {
                     env: {
                         ...process.env,
