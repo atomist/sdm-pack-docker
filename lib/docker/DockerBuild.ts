@@ -55,6 +55,7 @@ const DefaultDockerOptions: DockerOptions = {
     push: false,
     builder: "docker",
     builderArgs: [],
+    builderPath: ".",
 };
 
 /**
