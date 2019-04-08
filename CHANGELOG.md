@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased](https://github.com/atomist/sdm-pack-docker/compare/1.1.0...HEAD)
 
+### Added
+
+-   Add builderPath option. [#43](https://github.com/atomist/sdm-pack-docker/issues/43)
+
 ## [1.1.0](https://github.com/atomist/sdm-pack-docker/compare/1.0.2...1.1.0) - 2019-03-20
 
 ### Added
