@@ -95,21 +95,25 @@ function isLabel(l: Instruction): l is Label {
 // Deconstruct FROM to add children.
 // We need to do this for all structures we want to see inside
 function addChildrenFromFromStructure(n: TreeNode, l: From, doc: TextDocument): void {
+    const nameChild = {
+        $name: "name",
+        $value: l.getImageName(),
+        $offset: convertToOffset(l.getImageNameRange().start, doc),
+    };
+    const $children = [nameChild];
+    if (!!l.getImageTag()) {
+        $children.push({
+            $name: "tag",
+            $value: l.getImageTag(),
+            $offset: convertToOffset(l.getImageTagRange().start, doc),
+        });
+    }
     n.$children = [{
         $parent: n,
         $name: "image",
         $value: l.getImage(),
         $offset: convertToOffset(l.getImageRange().start, doc),
-        $children: [{
-            $name: "name",
-            $value: l.getImageName(),
-            $offset: convertToOffset(l.getImageNameRange().start, doc),
-        },
-            {
-                $name: "tag",
-                $value: l.getImageTag(),
-                $offset: convertToOffset(l.getImageTagRange().start, doc),
-            }],
+        $children,
     }];
 }
 

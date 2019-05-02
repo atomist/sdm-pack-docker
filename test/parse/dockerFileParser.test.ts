@@ -26,7 +26,11 @@ describe("Docker file parser", () => {
 
     it("should parse valid", async () => {
         const root = await DockerFileParser.toAst(new InMemoryProjectFile("Dockerfile", nodeDockerfile));
-        // console.log(stringify(root, null, 2));
+        assert(!!root);
+    });
+
+    it("should parse valid with / path", async () => {
+        const root = await DockerFileParser.toAst(new InMemoryProjectFile("Dockerfile", dashedImage));
         assert(!!root);
     });
 
@@ -37,6 +41,36 @@ describe("Docker file parser", () => {
         const images = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
             "//FROM/image");
         assert.strictEqual(images[0], "debian:jessie");
+    });
+
+    it("should query for image with /", async () => {
+        const p = InMemoryProject.of(
+            {path: "Dockerfile", content: dashedImage},
+        );
+        const images = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
+            "//FROM/image");
+        assert.strictEqual(images[0], "adoptopenjdk/openjdk8-openj9");
+    });
+
+    it("should find single EXPOSE", async () => {
+        const p = InMemoryProject.of(
+            {path: "Dockerfile", content: expose1},
+        );
+        const exposes = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
+            "//EXPOSE");
+        assert.strictEqual(exposes.length, 1);
+        assert.strictEqual(exposes[0], "EXPOSE 8080");
+    });
+
+    it("should find multiple EXPOSE", async () => {
+        const p = InMemoryProject.of(
+            {path: "Dockerfile", content: dashedImage},
+        );
+        const exposes = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
+            "//EXPOSE");
+        assert.strictEqual(exposes.length, 2);
+        assert.strictEqual(exposes[0], "EXPOSE 8080");
+        assert.strictEqual(exposes[1], "EXPOSE 8081");
     });
 
     it("should query for image name", async () => {
@@ -182,3 +216,15 @@ RUN ln -sf /dev/stdout /var/log/nginx/access.log \\
      && ln -sf /dev/stderr /var/log/nginx/error.log
 EXPOSE 80 443
 CMD [ "nginx", "-g", "daemon off;" ]`;
+
+const dashedImage = `
+FROM adoptopenjdk/openjdk8-openj9
+
+EXPOSE 8080
+EXPOSE 8081`;
+
+const expose1 = `
+FROM thing
+
+EXPOSE 8080
+`;
