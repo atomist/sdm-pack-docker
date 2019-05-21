@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased](https://github.com/atomist/sdm-pack-docker/compare/1.2.0...HEAD)
 
+### Changed
+
+-   Add support for multiple registries. [#49](https://github.com/atomist/sdm-pack-docker/issues/49)
+
 ## [1.2.0](https://github.com/atomist/sdm-pack-docker/compare/1.1.0...1.2.0) - 2019-04-08
 
 ### Added
