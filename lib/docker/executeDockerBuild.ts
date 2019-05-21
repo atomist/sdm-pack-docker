@@ -15,6 +15,7 @@
  */
 
 import {
+    executeAll,
     GitProject,
     HandlerContext,
     QueryNoCacheOptions,
@@ -233,7 +234,7 @@ async function dockerPush(images: string[],
     if (await pushEnabled(gi, options)) {
 
         if (!!options.concurrentPush) {
-            const results = await Promise.all(images.map(async image => {
+            const results = await executeAll(images.map(image => async () => {
                 const log = new StringCapturingProgressLog();
                 const r = await gi.spawn(
                     "docker",
@@ -340,13 +341,13 @@ function getExternalUrls(images: Array<{ registry: string, name: string, tags: s
 
     const externalUrls = images.map(i => {
         const reg = toArray(options.registry || []).find(r => r.registry === i.registry);
-        if (reg.display !== false) {
+        if (!!reg.display) {
             return i.tags.map(t => {
                 let url = `${!!reg.displayUrl ? reg.displayUrl : i.registry}/${i.name}`;
 
                 if (!!reg.displayBrowsePath) {
                     const replace = url.split(":").pop();
-                    url = url.replace(`:${replace}`, `${reg.displayBrowsePath}`);
+                    url = url.replace(`:${replace}`, reg.displayBrowsePath);
                 }
                 if (!!reg.label) {
                     return { label: reg.label, url };
@@ -388,6 +389,7 @@ async function readRegistries(ctx: HandlerContext): Promise<DockerRegistry[]> {
                 user: credential.Password[0].owner.login,
                 password: credential.Password[0].secret,
                 label: dockerRegistry.name,
+                display: false,
             });
         }
     }
