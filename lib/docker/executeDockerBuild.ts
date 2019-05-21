@@ -75,7 +75,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
             }
 
             // Check the graph for registries if we don't have any configured
-            if (!optsToUse.config && toArray(optsToUse.registry || []).length > 0) {
+            if (!optsToUse.config && toArray(optsToUse.registry || []).length === 0) {
                 optsToUse.registry = await readRegistries(context);
             }
 
@@ -86,7 +86,7 @@ export function executeDockerBuild(options: DockerOptions): ExecuteGoal {
             const dockerfilePath = await (optsToUse.dockerfileFinder ? optsToUse.dockerfileFinder(project) : "Dockerfile");
 
             let externalUrls: ExecuteGoalResult["externalUrls"] = [];
-            if (await pushEnabled(gi, options)) {
+            if (await pushEnabled(gi, optsToUse)) {
                 externalUrls = getExternalUrls(imageNames, optsToUse);
             }
 
@@ -280,11 +280,16 @@ async function dockerPush(images: string[],
 
 export const DefaultDockerImageNameCreator: DockerImageNameCreator = async (p, sdmGoal, options, context) => {
     const name = cleanImageName(p.name);
-    const tags = [await readSdmVersion(sdmGoal.repo.owner, sdmGoal.repo.name,
-        sdmGoal.repo.providerId, sdmGoal.sha, sdmGoal.branch, context)];
+    const tags: string[] = [];
+    const version = await readSdmVersion(sdmGoal.repo.owner, sdmGoal.repo.name,
+        sdmGoal.repo.providerId, sdmGoal.sha, sdmGoal.branch, context);
+
+    if (!!version) {
+        tags.push(version);
+    }
 
     const latestTag = await projectConfigurationValue<boolean>("docker.tag.latest", p, false);
-    if (latestTag && sdmGoal.branch === sdmGoal.push.repo.defaultBranch) {
+    if ((latestTag && sdmGoal.branch === sdmGoal.push.repo.defaultBranch) || tags.length === 0) {
         tags.push("latest");
     }
 

@@ -130,7 +130,6 @@ export interface DockerOptions extends Partial<ImplementationRegistration> {
 const DefaultDockerOptions: DockerOptions = {
     dockerImageNameCreator: DefaultDockerImageNameCreator,
     dockerfileFinder: async () => "Dockerfile",
-    push: false,
     builder: "docker",
     builderArgs: [],
     builderPath: ".",
