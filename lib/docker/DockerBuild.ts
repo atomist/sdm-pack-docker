@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { GitProject } from "@atomist/automation-client";
 import {
     DefaultGoalNameGenerator,
     FulfillableGoalDetails,
@@ -29,30 +30,106 @@ import { DockerProgressReporter } from "./DockerProgressReporter";
 import {
     DefaultDockerImageNameCreator,
     DockerImageNameCreator,
-    DockerOptions,
     executeDockerBuild,
 } from "./executeDockerBuild";
 
+export interface DockerRegistry {
+    /**
+     * Push Url for this registry
+     */
+    registry: string;
+
+    /**
+     * Should this registry be displayed with the goal status after a push? Default true.
+     */
+    display?: boolean;
+
+    /**
+     * Display Url - ie the url humans can go to
+     * assumes <url>/<image>
+     */
+    displayUrl?: string;
+
+    /**
+     * If specified, this will replace the label version details (eg <image><:version>)
+     * For example, for Dockerhub the correct value would be `/tags`, with a displayUrl set
+     * to https://hub.docker.com/r/<user/org>; will result in:
+     * https://hub.docker.com/r/<user/org>/<image>/tags as the link URL
+     *
+     */
+    displayBrowsePath?: string;
+
+    /**
+     * How should urls to this registry be labeled?
+     * ie DockerHub, ECR, etc (friendly name instead of big tag string)
+     * if not supplied, we'll display the tag
+     */
+    label?: string;
+
+    user?: string;
+    password?: string;
+
+}
+
 /**
- * Registration for a certain docker build and push configuration
+ * Options to configure the Docker image build
  */
-export interface DockerBuildRegistration extends Partial<ImplementationRegistration> {
+export interface DockerOptions extends Partial<ImplementationRegistration> {
 
     /**
-     * Options to configure the docker build
+     * Provide the image tag for the docker image to build
      */
-    options?: DockerOptions;
+    dockerImageNameCreator?: DockerImageNameCreator;
 
     /**
-     * @deprecated use options.dockerImageNameCreator
+     * True if the docker image should be pushed to the registry
      */
-    imageNameCreator?: DockerImageNameCreator;
+    push?: boolean;
+
+    /**
+     * True if pushes should happen concurrently
+     */
+    concurrentPush?: boolean;
+
+    /**
+     * Optional registries to push the docker image too.
+     * Needs to set when push === true
+     */
+    registry?: DockerRegistry | DockerRegistry[];
+
+    /**
+     * Optional Docker config in json as alternative to running
+     * 'docker login' with provided registry, user and password.
+     */
+    config?: string;
+
+    /**
+     * Find the Dockerfile within the project
+     * @param p the project
+     */
+    dockerfileFinder?: (p: GitProject) => Promise<string>;
+
+    /**
+     * Optionally specify what docker image builder to use.
+     * Defaults to "docker"
+     */
+    builder?: "docker" | "kaniko";
+
+    /**
+     * Optional arguments passed to the docker image builder
+     */
+    builderArgs?: string[];
+
+    /**
+     * Path relative to base of project to build.  If not provided,
+     * ".", i.e., the project base directory, is used.
+     */
+    builderPath?: string;
 }
 
 const DefaultDockerOptions: DockerOptions = {
     dockerImageNameCreator: DefaultDockerImageNameCreator,
     dockerfileFinder: async () => "Dockerfile",
-    push: false,
     builder: "docker",
     builderArgs: [],
     builderPath: ".",
@@ -61,7 +138,7 @@ const DefaultDockerOptions: DockerOptions = {
 /**
  * Goal that performs docker build and push depending on the provided options
  */
-export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildRegistration> {
+export class DockerBuild extends FulfillableGoalWithRegistrations<DockerOptions> {
 
     constructor(private readonly goalDetailsOrUniqueName: FulfillableGoalDetails | string = DefaultGoalNameGenerator.generateName("docker-build"),
                 ...dependsOn: Goal[]) {
@@ -73,15 +150,8 @@ export class DockerBuild extends FulfillableGoalWithRegistrations<DockerBuildReg
             , ...dependsOn);
     }
 
-    public with(registration: DockerBuildRegistration): this {
-        const optsToUse = mergeOptions<DockerOptions>(DefaultDockerOptions, registration.options);
-
-        // Backwards compatibility
-        // tslint:disable:deprecation
-        if (!!registration.imageNameCreator && (!registration.options || !registration.options.dockerImageNameCreator)) {
-            optsToUse.dockerImageNameCreator = registration.imageNameCreator;
-        }
-        // tslint:enable:deprecation
+    public with(registration: DockerOptions): this {
+        const optsToUse = mergeOptions<DockerOptions>(DefaultDockerOptions, registration);
 
         this.addFulfillment({
             goalExecutor: executeDockerBuild(optsToUse),

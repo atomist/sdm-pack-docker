@@ -1,6 +1,6 @@
 {
   "name": "@atomist/sdm-pack-docker",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "description": "Extension Pack for an Atomist SDM to integrate Docker",
   "author": {
     "name": "Atomist",
@@ -40,9 +40,9 @@
     "@atomist/sdm": ">=1.3.0"
   },
   "devDependencies": {
-    "@atomist/automation-client": "^1.3.0",
-    "@atomist/sdm": "^1.3.0",
-    "@atomist/sdm-core": "^1.3.0",
+    "@atomist/automation-client": "1.5.0-master.20190520153523",
+    "@atomist/sdm": "1.5.0-master.20190521100119",
+    "@atomist/sdm-core": "1.5.0-master.20190521124458",
     "@types/lodash": "^4.14.120",
     "@types/mocha": "^5.2.5",
     "@types/node": "^11.9.3",
@@ -62,21 +62,27 @@
     "test": "test"
   },
   "scripts": {
-    "autotest": "supervisor --watch index.ts,lib,test --extensions ts --no-restart-on exit --quiet --exec npm -- test",
+    "autotest": "supervisor --watch src,test --extensions ts --no-restart-on exit --quiet --exec npm -- test",
     "build": "run-s compile test lint doc",
-    "clean": "run-p clean:compile clean:doc clean:run",
-    "clean:compile": "rimraf git-info.json \"index.{d.ts,js{,.map}}\" \"{lib,test}/**/*.{d.ts,js{,.map}}\" lib/typings/types.ts",
+    "clean": "run-p clean:compile clean:test clean:doc clean:run",
+    "clean:compile": "rimraf git-info.json build \"index.{d.ts,js{,.map}}\" \"{src,lib,test}/**/*.{d.ts,js{,.map}}\" {src,lib}/typings/types.ts",
     "clean:dist": "run-s clean clean:npm",
     "clean:doc": "rimraf doc",
     "clean:npm": "rimraf node_modules",
     "clean:run": "rimraf *-v8.log profile.txt log",
-    "compile": "run-s compile:ts",
+    "clean:test": "rimraf .nyc_output coverage",
+    "compile": "run-s gql:gen compile:ts",
     "compile:ts": "tsc --project .",
-    "doc": "typedoc --mode modules --ignoreCompilerErrors --exclude \"**/*.d.ts\" --out doc index.ts lib",
-    "lint": "tslint --format verbose --project . --exclude \"node_modules/**\" --exclude \"**/*.d.ts\" \"**/*.ts\"",
-    "lint:fix": "npm run lint -- --fix",
-    "test": "mocha --require espower-typescript/guess \"test/**/*.test.ts\"",
-    "test:one": "mocha --require espower-typescript/guess \"test/**/${TEST:-*.test.ts}\"",
+    "doc": "typedoc --mode modules --ignoreCompilerErrors --excludeExternals --exclude \"**/*.d.ts\" --out doc lib",
+    "gql:gen": "atm-gql-gen",
+    "lint": "run-s lint:ts lint:gql",
+    "lint:fix": "run-s lint:ts:fix lint:gql:fix",
+    "lint:gql": "prettier --list-different \"lib/graphql/**/*.graphql\"",
+    "lint:gql:fix": "prettier --write \"lib/graphql/**/*.graphql\"",
+    "lint:ts": "tslint --format verbose --project . --exclude \"{build,node_modules}/**\" \"**/*.ts\"",
+    "lint:ts:fix": "npm run lint:ts -- --fix",
+    "test": "mocha --require ts-node/register --require source-map-support/register \"test/**/*est.ts\"",
+    "test:one": "mocha --require espower-typescript/guess \"test/**/${TEST:-*.ts}\"",
     "typedoc": "npm run doc"
   },
   "engines": {

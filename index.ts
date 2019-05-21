@@ -16,14 +16,14 @@
 
 export { HasDockerfile } from "./lib/docker/dockerPushTests";
 export {
-    DockerOptions,
     DockerImageNameCreator,
     executeDockerBuild,
     DefaultDockerImageNameCreator,
 } from "./lib/docker/executeDockerBuild";
 export {
     DockerBuild,
-    DockerBuildRegistration,
+    DockerOptions,
+    DockerRegistry,
 } from "./lib/docker/DockerBuild";
 export {
     DockerDeploy,
