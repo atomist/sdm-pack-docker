@@ -34,6 +34,22 @@ describe("Docker file parser", () => {
         assert(!!root);
     });
 
+    it("should parse docker image with only name", async () => {
+        // Special value to be able to find easily in logs
+        const image = `FROM nginx
+
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY resources/public /usr/share/nginx/html
+
+EXPOSE 8080`;
+        const p = InMemoryProject.of(
+            {path: "docker/Dockerfile", content: image},
+        );
+        const imageName: string[] = await astUtils.findValues(
+            p, DockerFileParser, "docker/Dockerfile", "//FROM/image/name");
+        assert.deepStrictEqual(imageName, ["nginx"]);
+    });
+
     it("should query for image", async () => {
         const p = InMemoryProject.of(
             {path: "Dockerfile", content: nginxDockerFile},
