@@ -109,7 +109,7 @@ describe("dockerBaseFingerprint", () => {
 
             const result = await dockerBaseFingerprint(p);
             assert.deepEqual(result, expectedResultOtherLocation);
-        })
+        });
     });
 
     describe("empty dockerfile, invalid fingerprint", async () => {
