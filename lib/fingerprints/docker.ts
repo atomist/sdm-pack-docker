@@ -19,10 +19,10 @@ import {
     logger,
     projectUtils,
 } from "@atomist/automation-client";
-import { DockerFileParser } from "../parse/DockerFileParser";
-import { ApplyFingerprint, ExtractFingerprint, Feature, FP, sha256 } from "@atomist/sdm-pack-fingerprints";
-import { Project } from "@atomist/automation-client/lib/project/Project";
 import { File } from "@atomist/automation-client/lib/project/File";
+import { Project } from "@atomist/automation-client/lib/project/Project";
+import { ApplyFingerprint, ExtractFingerprint, Feature, FP, sha256 } from "@atomist/sdm-pack-fingerprints";
+import { DockerFileParser } from "../parse/DockerFileParser";
 
 /**
  * Construct a Docker base image fingerprint from the given image and version
@@ -61,10 +61,10 @@ export const dockerBaseFingerprint: ExtractFingerprint = async p => {
 
     for (const f of files) {
         if (f && await f.getContent() !== "") {
-            fps.push(await parseDockerfile(p, f))
+            fps.push(await parseDockerfile(p, f));
         }
     }
-    return fps
+    return fps;
 };
 
 export const applyDockerBaseFingerprint: ApplyFingerprint = async (p, fp) => {
