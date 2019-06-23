@@ -49,7 +49,7 @@ export async function parseDockerfile(p: Project, f: File): Promise<FP> {
     const imageVersion: string[] = await astUtils.findValues(
         p, DockerFileParser, f.path, "//FROM/image/tag");
 
-    const fp: FP = createDockerBaseFingerprint(imageName[0], imageVersion[0] || "latest", "docker/Dockerfile");
+    const fp: FP = createDockerBaseFingerprint(imageName[0], imageVersion[0] || "latest", f.path);
 
     return fp;
 }

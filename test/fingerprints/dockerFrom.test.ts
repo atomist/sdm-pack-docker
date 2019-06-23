@@ -72,6 +72,15 @@ const expectedResult = [{
     sha: "95fd745f74af001eda2d76abf5ac1889224dc46bdb5e703d7612a2b67c5c1dc4",
 }];
 
+const expectedResultOtherLocation = [{
+    type: "docker-base-image",
+    name: "sforzando-dockerv2-local.jfrog.io/java-atomist",
+    abbreviation: "dbi-sforzando-dockerv2-local.jfrog.io/java-atomist",
+    version: "0.0.1",
+    data: { image: "sforzando-dockerv2-local.jfrog.io/java-atomist", version: "0.11.1-20181115141152", path: "Dockerfile" },
+    sha: "127826c5dfbf26f638ab53c8910c6f19ffd60f2adc25d5ec01f34e8688ee1eb6",
+}];
+
 describe("dockerBaseFingerprint", () => {
     describe("extract valid fingerprint", () => {
         it("should extract valid fingerprint", async () => {
@@ -86,6 +95,21 @@ describe("dockerBaseFingerprint", () => {
             const result = await dockerBaseFingerprint(p);
             assert.deepEqual(result, expectedResult);
         });
+    });
+
+    describe("extract valid fingerprint from different location", () => {
+        it("should extract valid fingerprint from Dockerfile", async () => {
+            const p = InMemoryProject.from({
+                repo: "foo",
+                sha: "26e18ee3e30c0df0f0f2ff0bc42a4bd08a7024b9",
+                branch: "master",
+                owner: "foo",
+                url: "https://fake.com/foo/foo.git",
+            }, ({ path: "Dockerfile", content: dummyDockerFile })) as any;
+
+            const result = await dockerBaseFingerprint(p);
+            assert.deepEqual(result, expectedResultOtherLocation);
+        })
     });
 
     describe("empty dockerfile, invalid fingerprint", async () => {
