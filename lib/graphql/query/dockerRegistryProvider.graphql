@@ -1,9 +1,9 @@
 query DockerRegistryProvider {
-    DockerRegistryProvider {
-        url
-        name
-        credential {
-            id
-        }
+  DockerRegistryProvider {
+    url
+    name
+    credential {
+      id
     }
+  }
 }

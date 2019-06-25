@@ -33,5 +33,8 @@ export {
     DockerProgressReporter,
     DockerProgressTests,
 } from "./lib/docker/DockerProgressReporter";
+export {
+    DockerFrom,
+} from "./lib/fingerprints/docker";
 
 export { DockerFileParser } from "./lib/parse/DockerFileParser";
