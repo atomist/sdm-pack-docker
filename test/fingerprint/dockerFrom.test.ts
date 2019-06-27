@@ -19,7 +19,7 @@ import assert = require("power-assert");
 import {
     applyDockerBaseFingerprint,
     dockerBaseFingerprint,
-} from "../../lib/fingerprints/docker";
+} from "../../lib/fingerprint/docker";
 
 const dummyDockerFile = `
 FROM sforzando-dockerv2-local.jfrog.io/java-atomist:0.11.1-20181115141152

@@ -14,27 +14,34 @@
  * limitations under the License.
  */
 
-export { HasDockerfile } from "./lib/docker/dockerPushTests";
+export {
+    HasDockerfile,
+} from "./lib/support/dockerPushTests";
 export {
     DockerImageNameCreator,
     executeDockerBuild,
     DefaultDockerImageNameCreator,
-} from "./lib/docker/executeDockerBuild";
+} from "./lib/build/executeDockerBuild";
 export {
     DockerBuild,
     DockerOptions,
     DockerRegistry,
-} from "./lib/docker/DockerBuild";
+} from "./lib/build/DockerBuild";
 export {
     DockerDeploy,
     DockerDeployRegistration,
-} from "./lib/docker/DockerDeploy";
+} from "./lib/deploy/DockerDeploy";
+export {
+    DockerPerBranchDeployer,
+    DockerPerBranchDeployerOptions,
+} from "./lib/deploy/DockerPerBranchDeployer";
 export {
     DockerProgressReporter,
     DockerProgressTests,
-} from "./lib/docker/DockerProgressReporter";
+} from "./lib/build/DockerProgressReporter";
 export {
     DockerFrom,
-} from "./lib/fingerprints/docker";
-
-export { DockerFileParser } from "./lib/parse/DockerFileParser";
+} from "./lib/fingerprint/docker";
+export {
+    DockerFileParser,
+} from "./lib/parse/DockerFileParser";

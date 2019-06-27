@@ -19,7 +19,6 @@ import {
     ProjectFile,
 } from "@atomist/automation-client";
 import { TreeNode } from "@atomist/tree-path";
-
 import {
     DockerfileParser,
     From,

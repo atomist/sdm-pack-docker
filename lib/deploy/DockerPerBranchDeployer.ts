@@ -21,6 +21,7 @@ import {
     ExecPromiseResult,
     GoalInvocation,
 } from "@atomist/sdm";
+// tslint:disable-next-line:deprecation
 import { SpawnedDeployment } from "@atomist/sdm-core";
 import { spawn } from "child_process";
 import * as portfinder from "portfinder";
@@ -61,6 +62,7 @@ export class DockerPerBranchDeployer {
     constructor(private readonly options: DockerPerBranchDeployerOptions) {
     }
 
+    // tslint:disable-next-line:deprecation
     public async deployProject(goalInvocation: GoalInvocation): Promise<SpawnedDeployment> {
         const branch = goalInvocation.goalEvent.branch;
 
@@ -107,6 +109,7 @@ export class DockerPerBranchDeployer {
         let stdout = "";
         let stderr = "";
 
+        // tslint:disable-next-line:deprecation
         return new Promise<SpawnedDeployment>((resolve, reject) => {
             childProcess.stdout.addListener("data", what => {
                 if (!!what) {

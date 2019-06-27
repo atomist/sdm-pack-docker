@@ -15,7 +15,7 @@
  */
 
 import * as assert from "power-assert";
-import { cleanImageName } from "../../lib/docker/name";
+import { cleanImageName } from "../../lib/support/name";
 
 describe("name", () => {
 

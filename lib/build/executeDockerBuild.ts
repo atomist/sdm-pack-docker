@@ -18,8 +18,6 @@ import {
     executeAll,
     GitProject,
     HandlerContext,
-    LocalProject,
-    Project,
     QueryNoCacheOptions,
     Success,
 } from "@atomist/automation-client";
@@ -44,6 +42,7 @@ import * as fs from "fs-extra";
 import * as _ from "lodash";
 import * as os from "os";
 import * as path from "path";
+import { cleanImageName } from "../support/name";
 import {
     DockerRegistryProvider,
     Password,
@@ -52,7 +51,6 @@ import {
     DockerOptions,
     DockerRegistry,
 } from "./DockerBuild";
-import { cleanImageName } from "./name";
 
 export type DockerImageNameCreator = (p: GitProject,
                                       sdmGoal: SdmGoalEvent,
@@ -337,7 +335,7 @@ async function checkIsBuilderAvailable(cmd: string, ...args: string[]): Promise<
 }
 
 async function pushEnabled(gi: ProjectAwareGoalInvocation, options: DockerOptions): Promise<boolean> {
-    let push;
+    let push = false;
     // tslint:disable-next-line:no-boolean-literal-compare
     if (options.push === true || options.push === false) {
         push = options.push;
@@ -360,7 +358,7 @@ function getExternalUrls(images: Array<{ registry: string, name: string, tags: s
 
     const externalUrls = images.map(i => {
         const reg = toArray(options.registry || []).find(r => r.registry === i.registry);
-        if (!!reg.display) {
+        if (!!reg && !!reg.display) {
             return i.tags.map(t => {
                 let url = `${!!reg.displayUrl ? reg.displayUrl : i.registry}/${i.name}`;
 

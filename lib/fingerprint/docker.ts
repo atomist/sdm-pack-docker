@@ -17,11 +17,17 @@
 import {
     astUtils,
     logger,
+    Project,
+    ProjectFile,
     projectUtils,
 } from "@atomist/automation-client";
-import { File } from "@atomist/automation-client/lib/project/File";
-import { Project } from "@atomist/automation-client/lib/project/Project";
-import { ApplyFingerprint, ExtractFingerprint, Feature, FP, sha256 } from "@atomist/sdm-pack-fingerprints";
+import {
+    ApplyFingerprint,
+    ExtractFingerprint,
+    Feature,
+    FP,
+    sha256,
+} from "@atomist/sdm-pack-fingerprints";
 import { DockerFileParser } from "../parse/DockerFileParser";
 
 /**
@@ -42,7 +48,7 @@ export function createDockerBaseFingerprint(image: string, version: string, path
     };
 }
 
-export async function parseDockerfile(p: Project, f: File): Promise<FP> {
+export async function parseDockerfile(p: Project, f: ProjectFile): Promise<FP> {
 
     const imageName: string[] = await astUtils.findValues(
         p, DockerFileParser, f.path, "//FROM/image/name");
@@ -68,7 +74,6 @@ export const dockerBaseFingerprint: ExtractFingerprint = async p => {
 };
 
 export const applyDockerBaseFingerprint: ApplyFingerprint = async (p, fp) => {
-    logger.info(`apply ${JSON.stringify(fp)} to ${p.id.url}`);
 
     interface DockerFP {
         name: string;
