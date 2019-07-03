@@ -89,6 +89,17 @@ EXPOSE 8080`;
         assert.strictEqual(exposes[1], "EXPOSE 8081");
     });
 
+    it("should find multiple EXPOSE and show ports", async () => {
+        const p = InMemoryProject.of(
+            {path: "Dockerfile", content: dashedImage},
+        );
+        const exposes = await astUtils.findValues(p, DockerFileParser, "Dockerfile",
+            "//EXPOSE/port");
+        assert.strictEqual(exposes.length, 2);
+        assert.strictEqual(exposes[0], "8080");
+        assert.strictEqual(exposes[1], "8081");
+    });
+
     it("should query for image name", async () => {
         const p = InMemoryProject.of(
             {path: "Dockerfile", content: nginxDockerFile},

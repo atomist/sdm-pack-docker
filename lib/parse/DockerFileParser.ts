@@ -74,6 +74,12 @@ function instructionToTreeNode(l: Instruction, doc: TextDocument, parent?: TreeN
             case "MAINTAINER" :
                 addChildrenFromMaintainer(n, l, doc);
                 break;
+            case "EXPOSE" :
+                n.$children = [{
+                    $name: "port",
+                    $value: l.getArgumentsContent(),
+                }];
+                break;
             default:
                 break;
         }
