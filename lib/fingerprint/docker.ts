@@ -30,6 +30,7 @@ import {
 } from "@atomist/sdm-pack-fingerprints";
 import { DockerFileParser } from "../parse/DockerFileParser";
 
+export const DockerPathType = "docker-path";
 export const DockerPortsType = "docker-ports";
 
 /**
@@ -120,9 +121,30 @@ export const extractDockerPortsFingerprint: ExtractFingerprint = async p => {
 };
 
 export const DockerPorts: Feature = {
-    displayName: "Docker base image",
+    displayName: "Docker ports",
     name: "docker-base-image",
     extract: extractDockerPortsFingerprint,
     selector: myFp => myFp.type && myFp.type === DockerPortsType,
     toDisplayableFingerprint: fp => fp.data.join(","),
+};
+
+export const extractDockerPathFingerprint: ExtractFingerprint = async p => {
+    const paths = await projectUtils.gatherFromFiles(p,
+        "**/Dockerfile", async f => f.path);
+    return paths.length === 1 ? {
+        type: DockerPathType,
+        name: "docker-path",
+        abbreviation: "dpa",
+        version: "0.0.1",
+        data: paths[0],
+        sha: sha256(JSON.stringify(paths[0])),
+    } : undefined;
+};
+
+export const DockerfilePath: Feature = {
+    displayName: "Dockerfile path",
+    name: "docker-path",
+    extract: extractDockerPathFingerprint,
+    selector: myFp => myFp.type && myFp.type === DockerPathType,
+    toDisplayableFingerprint: fp => fp.data,
 };

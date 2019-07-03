@@ -19,8 +19,8 @@ import { FP } from "@atomist/clj-editors";
 import assert = require("power-assert");
 import {
     applyDockerBaseFingerprint,
-    dockerBaseFingerprint,
-    DockerPortsType,
+    dockerBaseFingerprint, DockerPathType,
+    DockerPortsType, extractDockerPathFingerprint,
     extractDockerPortsFingerprint,
 } from "../../lib/fingerprint/docker";
 
@@ -250,6 +250,50 @@ EXPOSE 8080
             const result = await extractDockerPortsFingerprint(p) as FP;
             assert.strictEqual(result.type, DockerPortsType);
             assert.deepStrictEqual(result.data, ["80/tcp", "80/udp"]);
+        });
+    });
+
+    describe("dockerPathFingerprint", () => {
+
+        it("not find fingerprint", async () => {
+            const p = InMemoryProject.from({
+                repo: "foo",
+                sha: "26e18ee3e30c0df0f0f2ff0bc42a4bd08a7024b9",
+                branch: "master",
+                owner: "foo",
+                url: "https://fake.com/foo/foo.git",
+            });
+
+            const result = await extractDockerPathFingerprint(p) as FP;
+            assert.strictEqual(result, undefined);
+        });
+
+        it("should extract valid fingerprint", async () => {
+            const p = InMemoryProject.from({
+                repo: "foo",
+                sha: "26e18ee3e30c0df0f0f2ff0bc42a4bd08a7024b9",
+                branch: "master",
+                owner: "foo",
+                url: "https://fake.com/foo/foo.git",
+            }, ({ path: "Dockerfile", content: dummyDockerFile })) as any;
+
+            const result = await extractDockerPathFingerprint(p) as FP;
+            assert.strictEqual(result.type, DockerPathType);
+            assert.deepStrictEqual(result.data, "Dockerfile");
+        });
+
+        it("should extract nested fingerprint", async () => {
+            const p = InMemoryProject.from({
+                repo: "foo",
+                sha: "26e18ee3e30c0df0f0f2ff0bc42a4bd08a7024b9",
+                branch: "master",
+                owner: "foo",
+                url: "https://fake.com/foo/foo.git",
+            }, ({ path: "docker/Dockerfile", content: dummyDockerFile })) as any;
+
+            const result = await extractDockerPathFingerprint(p) as FP;
+            assert.strictEqual(result.type, DockerPathType);
+            assert.deepStrictEqual(result.data, "docker/Dockerfile");
         });
     });
 
