@@ -15,12 +15,12 @@
  */
 
 import { InMemoryProject } from "@atomist/automation-client";
+import { FP } from "@atomist/clj-editors";
 import assert = require("power-assert");
 import {
     applyDockerBaseFingerprint,
     dockerBaseFingerprint, DockerPortsType, extractDockerPortsFingerprint,
 } from "../../lib/fingerprint/docker";
-import { FP } from "@atomist/clj-editors";
 
 const dummyDockerFile = `
 FROM sforzando-dockerv2-local.jfrog.io/java-atomist:0.11.1-20181115141152
@@ -72,7 +72,7 @@ const expectedResult = [{
     data: {
         image: "sforzando-dockerv2-local.jfrog.io/java-atomist",
         version: "0.11.1-20181115141152",
-        path: "docker/Dockerfile"
+        path: "docker/Dockerfile",
     },
     sha: "95fd745f74af001eda2d76abf5ac1889224dc46bdb5e703d7612a2b67c5c1dc4",
 }];
@@ -85,7 +85,7 @@ const expectedResultOtherLocation = [{
     data: {
         image: "sforzando-dockerv2-local.jfrog.io/java-atomist",
         version: "0.11.1-20181115141152",
-        path: "Dockerfile"
+        path: "Dockerfile",
     },
     sha: "127826c5dfbf26f638ab53c8910c6f19ffd60f2adc25d5ec01f34e8688ee1eb6",
 }];
