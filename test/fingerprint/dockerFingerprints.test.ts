@@ -19,8 +19,10 @@ import { FP } from "@atomist/clj-editors";
 import assert = require("power-assert");
 import {
     applyDockerBaseFingerprint,
-    dockerBaseFingerprint, DockerPathType,
-    DockerPortsType, extractDockerPathFingerprint,
+    dockerBaseFingerprint,
+    DockerPathType,
+    DockerPortsType,
+    extractDockerPathFingerprint,
     extractDockerPortsFingerprint,
 } from "../../lib/fingerprint/docker";
 
