@@ -41,6 +41,7 @@ export {
 } from "./lib/build/DockerProgressReporter";
 export {
     DockerFrom,
+    DockerfilePath,
     DockerPorts,
 } from "./lib/fingerprint/docker";
 export {
