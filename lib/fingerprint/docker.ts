@@ -124,7 +124,6 @@ export const DockerPorts: Feature = {
     displayName: "Docker ports",
     name: "docker-base-image",
     extract: extractDockerPortsFingerprint,
-    selector: myFp => myFp.type && myFp.type === DockerPortsType,
     toDisplayableFingerprint: fp => fp.data.join(","),
 };
 
@@ -145,6 +144,5 @@ export const DockerfilePath: Feature = {
     displayName: "Dockerfile path",
     name: "docker-path",
     extract: extractDockerPathFingerprint,
-    selector: myFp => myFp.type && myFp.type === DockerPathType,
     toDisplayableFingerprint: fp => fp.data,
 };
