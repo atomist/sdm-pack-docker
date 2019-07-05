@@ -105,7 +105,7 @@ export const DockerFrom: Feature = {
 function createDockerPortsFingerprint(data: string[]): FP {
     return {
         type: DockerPortsType,
-        name: "docker-ports",
+        name: DockerPortsType,
         abbreviation: `dps`,
         version: "0.0.1",
         data,
@@ -122,7 +122,7 @@ export const extractDockerPortsFingerprint: ExtractFingerprint = async p => {
 
 export const DockerPorts: Feature = {
     displayName: "Docker ports",
-    name: "docker-base-image",
+    name: DockerPortsType,
     extract: extractDockerPortsFingerprint,
     toDisplayableFingerprint: fp => fp.data.join(","),
 };
@@ -132,7 +132,7 @@ export const extractDockerPathFingerprint: ExtractFingerprint = async p => {
         "**/Dockerfile", async f => f.path);
     return paths.length === 1 ? {
         type: DockerPathType,
-        name: "docker-path",
+        name: DockerPathType,
         abbreviation: "dpa",
         version: "0.0.1",
         data: paths[0],
@@ -142,7 +142,7 @@ export const extractDockerPathFingerprint: ExtractFingerprint = async p => {
 
 export const DockerfilePath: Feature = {
     displayName: "Dockerfile path",
-    name: "docker-path",
+    name: DockerPathType,
     extract: extractDockerPathFingerprint,
     toDisplayableFingerprint: fp => fp.data,
 };
