@@ -15,7 +15,7 @@
  */
 
 import { InMemoryProject } from "@atomist/automation-client";
-import { FP } from "@atomist/clj-editors";
+import { FP } from "@atomist/sdm-pack-fingerprints";
 import assert = require("power-assert");
 import {
     applyDockerBaseFingerprint,
