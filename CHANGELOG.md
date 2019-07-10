@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased](https://github.com/atomist/sdm-pack-docker/compare/2.0.1...HEAD)
 
+### Added
+
+-   Add Docker ports and file path features. [#57](https://github.com/atomist/sdm-pack-docker/issues/57)
+
 ## [2.0.1](https://github.com/atomist/sdm-pack-docker/compare/2.0.0...2.0.1) - 2019-07-10
 
 ## [2.0.0](https://github.com/atomist/sdm-pack-docker/compare/1.2.0...2.0.0) - 2019-07-09
