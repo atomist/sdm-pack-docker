@@ -30,6 +30,9 @@ import {
 } from "@atomist/sdm-pack-fingerprints";
 import { DockerFileParser } from "../parse/DockerFileParser";
 
+export const DockerPathType = "docker-path";
+export const DockerPortsType = "docker-ports";
+
 /**
  * Construct a Docker base image fingerprint from the given image and version
  * @param {string} image
@@ -49,23 +52,16 @@ export function createDockerBaseFingerprint(image: string, version: string, path
 }
 
 export async function parseDockerfile(p: Project, f: ProjectFile): Promise<FP> {
-
     const imageName: string[] = await astUtils.findValues(
         p, DockerFileParser, f.path, "//FROM/image/name");
     const imageVersion: string[] = await astUtils.findValues(
         p, DockerFileParser, f.path, "//FROM/image/tag");
-
-    const fp: FP = createDockerBaseFingerprint(imageName[0], imageVersion[0] || "latest", f.path);
-
-    return fp;
+    return createDockerBaseFingerprint(imageName[0], imageVersion[0] || "latest", f.path);
 }
 
 export const dockerBaseFingerprint: ExtractFingerprint = async p => {
-    const files = await projectUtils.toPromise(p.streamFiles("**/Dockerfile"));
-
     const fps: FP[] = [];
-
-    for (const f of files) {
+    for await (const f of projectUtils.fileIterator(p, "**/Dockerfile", async () => true)) {
         if (f && await f.getContent() !== "") {
             fps.push(await parseDockerfile(p, f));
         }
@@ -104,4 +100,49 @@ export const DockerFrom: Feature = {
     apply: applyDockerBaseFingerprint,
     extract: dockerBaseFingerprint,
     toDisplayableFingerprint: fp => fp.data.version,
+};
+
+function createDockerPortsFingerprint(data: string[]): FP {
+    return {
+        type: DockerPortsType,
+        name: DockerPortsType,
+        abbreviation: `dps`,
+        version: "0.0.1",
+        data,
+        sha: sha256(JSON.stringify(data)),
+    };
+}
+
+export const extractDockerPortsFingerprint: ExtractFingerprint = async p => {
+    const ports = await astUtils.findValues(p, DockerFileParser,
+        "**/Dockerfile",
+        "//EXPOSE/port");
+    return ports.length > 0 ? createDockerPortsFingerprint(ports) : undefined;
+};
+
+export const DockerPorts: Feature = {
+    displayName: "Docker ports",
+    name: DockerPortsType,
+    extract: extractDockerPortsFingerprint,
+    toDisplayableFingerprint: fp => fp.data.join(","),
+};
+
+export const extractDockerPathFingerprint: ExtractFingerprint = async p => {
+    const paths = await projectUtils.gatherFromFiles(p,
+        "**/Dockerfile", async f => f.path);
+    return paths.length === 1 ? {
+        type: DockerPathType,
+        name: DockerPathType,
+        abbreviation: "dpa",
+        version: "0.0.1",
+        data: paths[0],
+        sha: sha256(JSON.stringify(paths[0])),
+    } : undefined;
+};
+
+export const DockerfilePath: Feature = {
+    displayName: "Dockerfile path",
+    name: DockerPathType,
+    extract: extractDockerPathFingerprint,
+    toDisplayableFingerprint: fp => fp.data,
 };

@@ -16,6 +16,7 @@
 
 import {
     FileParser,
+    logger,
     ProjectFile,
 } from "@atomist/automation-client";
 import { TreeNode } from "@atomist/tree-path";
@@ -35,13 +36,19 @@ class DockerFileParserClass implements FileParser {
     public readonly rootName: "docker";
 
     public async toAst(f: ProjectFile): Promise<TreeNode> {
-        const dockerfile = DockerfileParser.parse(await f.getContent());
-        // console.log(stringify(dockerfile));
-        const doc = (dockerfile as any).document;
-        return {
-            $name: f.name,
-            $children: dockerfile.getInstructions().map(i => instructionToTreeNode(i, doc)),
-        };
+        try {
+            const dockerfile = DockerfileParser.parse(await f.getContent());
+            // console.log(stringify(dockerfile));
+            const doc = (dockerfile as any).document;
+            const $children = dockerfile.getInstructions().map(i => instructionToTreeNode(i, doc));
+            return {
+                $name: f.name,
+                $children,
+            };
+        } catch (err) {
+            logger.error("Error parsing Dockerfile", err);
+            throw err;
+        }
     }
 
 }
@@ -60,7 +67,7 @@ function instructionToTreeNode(l: Instruction, doc: TextDocument, parent?: TreeN
         $name: l.getKeyword(),
         $value: l.getTextContent(),
         $parent: parent,
-        $offset: convertToOffset(l.getRange().start, doc),
+        $offset: l.getRange() ? convertToOffset(l.getRange().start, doc) : undefined,
     };
 
     // Deconstruct subelements. There is no generic tree structure in the
@@ -73,6 +80,12 @@ function instructionToTreeNode(l: Instruction, doc: TextDocument, parent?: TreeN
         switch (l.getKeyword()) {
             case "MAINTAINER" :
                 addChildrenFromMaintainer(n, l, doc);
+                break;
+            case "EXPOSE" :
+                n.$children = [{
+                    $name: "port",
+                    $value: l.getArgumentsContent(),
+                }];
                 break;
             default:
                 break;
@@ -130,7 +143,7 @@ function addChildrenFromLabelStructure(n: TreeNode, l: Label, doc: TextDocument)
             {
                 $name: "value",
                 $value: prop.getValue(),
-                $offset: convertToOffset(prop.getValueRange().start, doc),
+                $offset: prop.getValueRange() ? convertToOffset(prop.getValueRange().start, doc) : undefined,
             }],
     }));
 }
