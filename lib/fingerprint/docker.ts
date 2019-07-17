@@ -24,7 +24,7 @@ import {
 import {
     ApplyFingerprint,
     ExtractFingerprint,
-    Feature,
+    Aspect,
     FP,
     sha256,
 } from "@atomist/sdm-pack-fingerprints";
@@ -94,7 +94,7 @@ export const applyDockerBaseFingerprint: ApplyFingerprint = async (p, fp) => {
     }
 };
 
-export const DockerFrom: Feature = {
+export const DockerFrom: Aspect = {
     displayName: "Docker base image",
     name: "docker-base-image",
     apply: applyDockerBaseFingerprint,
@@ -120,7 +120,7 @@ export const extractDockerPortsFingerprint: ExtractFingerprint = async p => {
     return ports.length > 0 ? createDockerPortsFingerprint(ports) : undefined;
 };
 
-export const DockerPorts: Feature = {
+export const DockerPorts: Aspect = {
     displayName: "Docker ports",
     name: DockerPortsType,
     extract: extractDockerPortsFingerprint,
@@ -140,7 +140,7 @@ export const extractDockerPathFingerprint: ExtractFingerprint = async p => {
     } : undefined;
 };
 
-export const DockerfilePath: Feature = {
+export const DockerfilePath: Aspect = {
     displayName: "Dockerfile path",
     name: DockerPathType,
     extract: extractDockerPathFingerprint,
