@@ -23,8 +23,8 @@ import {
 } from "@atomist/automation-client";
 import {
     ApplyFingerprint,
-    ExtractFingerprint,
     Aspect,
+    ExtractFingerprint,
     FP,
     sha256,
 } from "@atomist/sdm-pack-fingerprints";
