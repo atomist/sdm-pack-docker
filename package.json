@@ -36,15 +36,15 @@
     "vscode-languageserver-types": "^3.14.0"
   },
   "peerDependencies": {
-    "@atomist/automation-client": ">=1.6.1",
-    "@atomist/sdm": ">=1.6.0",
-    "@atomist/sdm-pack-fingerprints": ">=4.0.1"
+    "@atomist/automation-client": "^1.6.2",
+    "@atomist/sdm": "^1.6.1",
+    "@atomist/sdm-pack-fingerprints": "^4.0.4"
   },
   "devDependencies": {
-    "@atomist/automation-client": "^1.6.1",
-    "@atomist/sdm": "^1.6.0",
-    "@atomist/sdm-core": "^1.6.0",
-    "@atomist/sdm-pack-fingerprints": "^4.0.5-master.20190809221814",
+    "@atomist/automation-client": "^1.6.2",
+    "@atomist/sdm": "^1.6.1",
+    "@atomist/sdm-core": "^1.6.1",
+    "@atomist/sdm-pack-fingerprints": "4.0.5-master.20190809221814",
     "@types/lodash": "^4.14.136",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.6.2",
