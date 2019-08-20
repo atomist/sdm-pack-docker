@@ -33,13 +33,29 @@ import { DockerFileParser } from "../parse/DockerFileParser";
 export const DockerPathType = "docker-path";
 export const DockerPortsType = "docker-ports";
 
+export interface DockerBaseData {
+
+    /**
+     * Docker image name. This is also the name of the fingerprint
+     */
+    image: string;
+
+    version: string;
+
+    /**
+     * Path to the Docker file
+     */
+    path: string;
+}
+
 /**
  * Construct a Docker base image fingerprint from the given image and version
  * @param {string} image
  * @param {string} version
+ * @param path path of the docker file
  * @return {FP}
  */
-export function createDockerBaseFingerprint(image: string, version: string, path: string): FP {
+export function createDockerBaseFingerprint(image: string, version: string, path: string): FP<DockerBaseData> {
     const data = { image, version, path };
     return {
         type: DockerFrom.name,
@@ -51,7 +67,7 @@ export function createDockerBaseFingerprint(image: string, version: string, path
     };
 }
 
-export async function parseDockerfile(p: Project, f: ProjectFile): Promise<FP> {
+export async function parseDockerfile(p: Project, f: ProjectFile): Promise<FP<DockerBaseData>> {
     const imageName: string[] = await astUtils.findValues(
         p, DockerFileParser, f.path, "//FROM/image/name");
     const imageVersion: string[] = await astUtils.findValues(
@@ -59,7 +75,7 @@ export async function parseDockerfile(p: Project, f: ProjectFile): Promise<FP> {
     return createDockerBaseFingerprint(imageName[0], imageVersion[0] || "latest", f.path);
 }
 
-export const dockerBaseFingerprint: ExtractFingerprint = async p => {
+export const dockerBaseFingerprint: ExtractFingerprint<FP<DockerBaseData>> = async p => {
     const fps: FP[] = [];
     for await (const f of projectUtils.fileIterator(p, "**/Dockerfile", async () => true)) {
         if (f && await f.getContent() !== "") {
@@ -69,23 +85,14 @@ export const dockerBaseFingerprint: ExtractFingerprint = async p => {
     return fps;
 };
 
-export const applyDockerBaseFingerprint: ApplyFingerprint = async (p, fp) => {
-
-    interface DockerFP {
-        name: string;
-        version: string;
-        path: string;
-    }
-
-    const newFP = fp.data as DockerFP;
-
+export const applyDockerBaseFingerprint: ApplyFingerprint<FP<DockerBaseData>> = async (p, fp) => {
     try {
         await astUtils.doWithAllMatches(
             p,
             DockerFileParser,
             fp.data.path,
             "//FROM/image/tag",
-            n => n.$value = newFP.version,
+            n => n.$value = fp.data.version,
         );
         return (true);
     } catch (e) {
@@ -94,11 +101,12 @@ export const applyDockerBaseFingerprint: ApplyFingerprint = async (p, fp) => {
     }
 };
 
-export const DockerFrom: Aspect = {
+export const DockerFrom: Aspect<FP<DockerBaseData>> = {
     displayName: "Docker base image",
     name: "docker-base-image",
     apply: applyDockerBaseFingerprint,
     extract: dockerBaseFingerprint,
+    toDisplayableFingerprintName: name => name,
     toDisplayableFingerprint: fp => fp.data.version,
 };
 
