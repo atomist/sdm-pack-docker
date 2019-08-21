@@ -16,7 +16,6 @@
 
 import {
     astUtils,
-    logger,
     Project,
     ProjectFile,
     projectUtils,
@@ -85,20 +84,16 @@ export const dockerBaseFingerprint: ExtractFingerprint<DockerBaseData> = async p
     return fps;
 };
 
-export const applyDockerBaseFingerprint: ApplyFingerprint<DockerBaseData> = async (p, fp) => {
-    try {
-        await astUtils.doWithAllMatches(
-            p,
-            DockerFileParser,
-            fp.data.path,
-            "//FROM/image/tag",
-            n => n.$value = fp.data.version,
-        );
-        return (true);
-    } catch (e) {
-        logger.error(e);
-        return false;
-    }
+export const applyDockerBaseFingerprint: ApplyFingerprint<DockerBaseData> = async (p, papi) => {
+    const fp = papi.parameters.fp;
+    await astUtils.doWithAllMatches(
+        p,
+        DockerFileParser,
+        fp.data.path,
+        "//FROM/image/tag",
+        n => n.$value = fp.data.version,
+    );
+    return p;
 };
 
 export const DockerFrom: Aspect<DockerBaseData> = {

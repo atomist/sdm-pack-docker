@@ -38,13 +38,13 @@
   "peerDependencies": {
     "@atomist/automation-client": "^1.6.2",
     "@atomist/sdm": "^1.6.1",
-    "@atomist/sdm-pack-fingerprints": "^4.0.5-master.20190821001652"
+    "@atomist/sdm-pack-fingerprints": "^4.0.4"
   },
   "devDependencies": {
     "@atomist/automation-client": "^1.6.2",
     "@atomist/sdm": "^1.6.1",
     "@atomist/sdm-core": "^1.6.1",
-    "@atomist/sdm-pack-fingerprints": "^4.0.5-master.20190821001652",
+    "@atomist/sdm-pack-fingerprints": "5.0.0-master.20190821102259",
     "@types/lodash": "^4.14.136",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.6.2",

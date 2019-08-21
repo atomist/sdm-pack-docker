@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-import { InMemoryProject } from "@atomist/automation-client";
+import {
+    InMemoryProject,
+    Project,
+} from "@atomist/automation-client";
 import { FP } from "@atomist/sdm-pack-fingerprints";
 import assert = require("power-assert");
 import {
@@ -153,8 +156,8 @@ describe("docker fingerprints", () => {
                 url: "https://fake.com/foo/foo.git",
             }, ({ path: "docker/Dockerfile", content: updateMeDockerfile })) as any;
 
-            const result = await applyDockerBaseFingerprint(p, expectedResult[0]);
-            assert.strictEqual(result, true);
+            const result = await applyDockerBaseFingerprint(p, { parameters: { fp: expectedResult[0] } } as any) as Project;
+            assert((await result.getFile("docker/Dockerfile")).getContentSync().includes("FROM sforzando-dockerv2-local.jfrog.io/java-atomist"));
         });
 
         it("should have updated the dockerfile content", async () => {
@@ -167,7 +170,7 @@ describe("docker fingerprints", () => {
             }, ({ path: "docker/Dockerfile", content: updateMeDockerfile })) as any;
             const t = (p as InMemoryProject);
 
-            await applyDockerBaseFingerprint(p, expectedResult[0]);
+            await applyDockerBaseFingerprint(p, { parameters: { fp: expectedResult[0] } } as any);
             const updatedDockerFileHandle = await t.getFile("docker/Dockerfile");
             const updatedDockerfile = await updatedDockerFileHandle.getContent();
 
