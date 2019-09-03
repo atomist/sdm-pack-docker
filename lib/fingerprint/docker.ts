@@ -26,7 +26,7 @@ import {
     ExtractFingerprint,
     FP,
     sha256,
-} from "@atomist/sdm-pack-fingerprints";
+} from "@atomist/sdm-pack-fingerprint";
 import { DockerFileParser } from "../parse/DockerFileParser";
 
 export const DockerPathType = "docker-path";

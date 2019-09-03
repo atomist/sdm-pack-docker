@@ -18,7 +18,7 @@ import {
     InMemoryProject,
     Project,
 } from "@atomist/automation-client";
-import { FP } from "@atomist/sdm-pack-fingerprints";
+import { FP } from "@atomist/sdm-pack-fingerprint";
 import assert = require("power-assert");
 import {
     applyDockerBaseFingerprint,
@@ -110,7 +110,7 @@ describe("docker fingerprints", () => {
                     url: "https://fake.com/foo/foo.git",
                 }, ({ path: "docker/Dockerfile", content: dummyDockerFile })) as any;
 
-                const result = await dockerBaseFingerprint(p);
+                const result = await dockerBaseFingerprint(p, {} as any);
                 assert.deepEqual(result, expectedResult);
             });
         });
@@ -125,7 +125,7 @@ describe("docker fingerprints", () => {
                     url: "https://fake.com/foo/foo.git",
                 }, ({ path: "Dockerfile", content: dummyDockerFile })) as any;
 
-                const result = await dockerBaseFingerprint(p);
+                const result = await dockerBaseFingerprint(p, {} as any);
                 assert.deepEqual(result, expectedResultOtherLocation);
             });
         });
@@ -140,7 +140,7 @@ describe("docker fingerprints", () => {
                     url: "https://fake.com/foo/foo.git",
                 }, ({ path: "docker/Dockerfile", content: "" })) as any;
 
-                const result = await dockerBaseFingerprint(p);
+                const result = await dockerBaseFingerprint(p, {} as any);
                 assert.deepEqual(result, []);
             });
         });
@@ -206,7 +206,7 @@ EXPOSE 8080
                 url: "https://fake.com/foo/foo.git",
             }, ({ path: "docker/Dockerfile", content: nginxDockerFile })) as any;
 
-            const result = await dockerBaseFingerprint(p);
+            const result = await dockerBaseFingerprint(p, {} as any);
             assert.deepEqual(result, nginxResult);
         });
     });
@@ -222,7 +222,7 @@ EXPOSE 8080
                 url: "https://fake.com/foo/foo.git",
             });
 
-            const result = await extractDockerPortsFingerprint(p) as FP;
+            const result = await extractDockerPortsFingerprint(p, {} as any) as FP;
             assert.strictEqual(result, undefined);
         });
 
@@ -235,7 +235,7 @@ EXPOSE 8080
                 url: "https://fake.com/foo/foo.git",
             }, ({ path: "docker/Dockerfile", content: dummyDockerFile })) as any;
 
-            const result = await extractDockerPortsFingerprint(p) as FP;
+            const result = await extractDockerPortsFingerprint(p, {} as any) as FP;
             assert.strictEqual(result.type, DockerPortsType);
             assert.deepStrictEqual(result.data, ["8080"]);
         });
@@ -252,7 +252,7 @@ EXPOSE 8080
                 content: "EXPOSE 80/tcp\nEXPOSE 80/udp\n",
             }));
 
-            const result = await extractDockerPortsFingerprint(p) as FP;
+            const result = await extractDockerPortsFingerprint(p, {} as any) as FP;
             assert.strictEqual(result.type, DockerPortsType);
             assert.deepStrictEqual(result.data, ["80/tcp", "80/udp"]);
         });
@@ -269,7 +269,7 @@ EXPOSE 8080
                 url: "https://fake.com/foo/foo.git",
             });
 
-            const result = await extractDockerPathFingerprint(p) as FP;
+            const result = await extractDockerPathFingerprint(p, {} as any) as FP;
             assert.strictEqual(result, undefined);
         });
 
@@ -282,7 +282,7 @@ EXPOSE 8080
                 url: "https://fake.com/foo/foo.git",
             }, ({ path: "Dockerfile", content: dummyDockerFile })) as any;
 
-            const result = await extractDockerPathFingerprint(p) as FP;
+            const result = await extractDockerPathFingerprint(p, {} as any) as FP;
             assert.strictEqual(result.type, DockerPathType);
             assert.deepStrictEqual(result.data, "Dockerfile");
         });
@@ -296,7 +296,7 @@ EXPOSE 8080
                 url: "https://fake.com/foo/foo.git",
             }, ({ path: "docker/Dockerfile", content: dummyDockerFile })) as any;
 
-            const result = await extractDockerPathFingerprint(p) as FP;
+            const result = await extractDockerPathFingerprint(p, {} as any) as FP;
             assert.strictEqual(result.type, DockerPathType);
             assert.deepStrictEqual(result.data, "docker/Dockerfile");
         });
