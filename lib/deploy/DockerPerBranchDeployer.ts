@@ -35,7 +35,9 @@ export interface DockerPerBranchDeployerOptions {
      */
     lowerPort: number;
     /**
-     * Pattern that indicates that the container has started up correctly
+     * Regex patterns used to progressively scan stdout. 
+     * If _any_ patterns match it is taken to indicate the container has started up correctly.
+     * If patterns are too general (e.g. `.*`) false positives will be reported.
      */
     successPatterns: RegExp[];
     /**
