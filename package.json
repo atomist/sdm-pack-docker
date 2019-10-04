@@ -38,7 +38,7 @@
   "peerDependencies": {
     "@atomist/automation-client": "^1.7.0",
     "@atomist/sdm": "^1.7.0",
-    "@atomist/sdm-pack-fingerprints": "^4.0.4"
+    "@atomist/sdm-pack-fingerprint": "^4.0.4"
   },
   "devDependencies": {
     "@atomist/automation-client": "^1.7.0",
