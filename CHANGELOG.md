@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 -   Strongly type Docker base fingerprint and upgrade fingerprint pack. [#64](https://github.com/atomist/sdm-pack-docker/issues/64)
+-   Update deps, remove deploy features. [08b1d3e](https://github.com/atomist/sdm-pack-docker/commit/08b1d3e461a855e7c870e4081397576c305baa7a)
 
 ## [2.0.2](https://github.com/atomist/sdm-pack-docker/compare/2.0.1...2.0.2) - 2019-07-10
 
