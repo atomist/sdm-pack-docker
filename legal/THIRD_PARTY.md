@@ -12,7 +12,7 @@ This page details all runtime OSS dependencies of `@atomist/sdm-pack-docker`.
 |---------|-------|
 |[GPL-3.0](#gpl-30)|2|
 |[ISC](#isc)|3|
-|[MIT](#mit)|16|
+|[MIT](#mit)|17|
 
 #### GPL-3.0
 GNU General Public License v3.0 only - [https://www.gnu.org/licenses/gpl-3.0-standalone.html](https://www.gnu.org/licenses/gpl-3.0-standalone.html)
@@ -41,7 +41,7 @@ MIT License - [https://opensource.org/licenses/MIT](https://opensource.org/licen
 |`@types/node`|`12.6.2`||[https://github.com/DefinitelyTyped/DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped)|
 |`async`|`1.5.2`|Caolan McMahon|[https://github.com/caolan/async](https://github.com/caolan/async)|
 |`debug`|`2.6.9`|TJ Holowaychuk|[https://github.com/visionmedia/debug](https://github.com/visionmedia/debug)|
-|`dockerfile-ast`|`0.0.16`|Remy Suen|[https://github.com/rcjsuen/dockerfile-ast](https://github.com/rcjsuen/dockerfile-ast)|
+|`dockerfile-ast`|`0.0.24`|Remy Suen|[https://github.com/rcjsuen/dockerfile-ast](https://github.com/rcjsuen/dockerfile-ast)|
 |`fs-extra`|`8.1.0`|JP Richardson|[https://github.com/jprichardson/node-fs-extra](https://github.com/jprichardson/node-fs-extra)|
 |`jsonfile`|`4.0.0`|JP Richardson|[https://github.com/jprichardson/node-jsonfile](https://github.com/jprichardson/node-jsonfile)|
 |`lodash.flatten`|`4.4.0`|John-David Dalton|[https://github.com/lodash/lodash](https://github.com/lodash/lodash)|
@@ -52,6 +52,7 @@ MIT License - [https://opensource.org/licenses/MIT](https://opensource.org/licen
 |`portfinder`|`1.0.20`|Charlie Robbins|[https://github.com/indexzero/node-portfinder](https://github.com/indexzero/node-portfinder)|
 |`universalify`|`0.1.2`|Ryan Zimmerman|[https://github.com/RyanZim/universalify](https://github.com/RyanZim/universalify)|
 |`vscode-languageserver-types`|`3.14.0`|Microsoft Corporation|[https://github.com/Microsoft/vscode-languageserver-node](https://github.com/Microsoft/vscode-languageserver-node)|
+|`vscode-languageserver-types`|`3.15.1`|Microsoft Corporation|[https://github.com/Microsoft/vscode-languageserver-node](https://github.com/Microsoft/vscode-languageserver-node)|
 
 ## Contact
 
