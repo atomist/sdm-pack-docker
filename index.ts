@@ -28,14 +28,6 @@ export {
     DockerRegistry,
 } from "./lib/build/DockerBuild";
 export {
-    DockerDeploy,
-    DockerDeployRegistration,
-} from "./lib/deploy/DockerDeploy";
-export {
-    DockerPerBranchDeployer,
-    DockerPerBranchDeployerOptions,
-} from "./lib/deploy/DockerPerBranchDeployer";
-export {
     DockerProgressReporter,
     DockerProgressTests,
 } from "./lib/build/DockerProgressReporter";

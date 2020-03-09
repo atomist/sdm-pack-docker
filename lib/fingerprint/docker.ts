@@ -67,11 +67,10 @@ export function createDockerBaseFingerprint(image: string, version: string, path
 }
 
 export async function parseDockerfile(p: Project, f: ProjectFile): Promise<FP<DockerBaseData>> {
-    const imageName: string[] = await astUtils.findValues(
-        p, DockerFileParser, f.path, "//FROM/image/name");
-    const imageVersion: string[] = await astUtils.findValues(
-        p, DockerFileParser, f.path, "//FROM/image/tag");
-    return createDockerBaseFingerprint(imageName[0], imageVersion[0] || "latest", f.path);
+    const image: string[] = await astUtils.findValues(p, DockerFileParser, f.path, "//FROM/image");
+    const imageName = image[0].split(":")[0];
+    const imageTag = image[0].split(":")[1] || "latest";
+    return createDockerBaseFingerprint(imageName, imageTag, f.path);
 }
 
 export const dockerBaseFingerprint: ExtractFingerprint<DockerBaseData> = async p => {

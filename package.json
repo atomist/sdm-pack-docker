@@ -1,6 +1,6 @@
 {
   "name": "@atomist/sdm-pack-docker",
-  "version": "2.0.3",
+  "version": "3.0.0",
   "description": "Extension Pack for an Atomist SDM to integrate Docker",
   "author": {
     "name": "Atomist",
@@ -29,21 +29,22 @@
   "dependencies": {
     "@atomist/tree-path": "^1.0.3",
     "@types/fs-extra": "^8.0.0",
-    "dockerfile-ast": "0.0.16",
+    "dockerfile-ast": "0.0.24",
     "fs-extra": "^8.1.0",
     "lodash": "^4.17.13",
     "portfinder": "^1.0.20",
     "vscode-languageserver-types": "^3.14.0"
   },
   "peerDependencies": {
-    "@atomist/automation-client": "^1.7.0",
-    "@atomist/sdm": "^1.7.0",
+    "@atomist/automation-client": "^1.9.0",
+    "@atomist/sdm": "^1.9.0",
+    "@atomist/sdm-core": "^1.9.0",
     "@atomist/sdm-pack-fingerprint": "^4.0.4"
   },
   "devDependencies": {
-    "@atomist/automation-client": "^1.7.0",
-    "@atomist/sdm": "^1.7.0",
-    "@atomist/sdm-core": "^1.7.0",
+    "@atomist/automation-client": "^1.9.0",
+    "@atomist/sdm": "^1.9.0",
+    "@atomist/sdm-core": "^1.9.0",
     "@atomist/sdm-pack-fingerprint": "5.0.0-master.20190903062633",
     "@types/lodash": "^4.14.136",
     "@types/mocha": "^5.2.7",
@@ -55,10 +56,10 @@
     "power-assert": "^1.6.1",
     "rimraf": "^2.6.3",
     "supervisor": "^0.12.0",
-    "ts-node": "^8.3.0",
-    "tslint": "^5.19.0",
-    "typedoc": "^0.15.0",
-    "typescript": "^3.6.3"
+    "ts-node": "^8.5.4",
+    "tslint": "^5.20.1",
+    "typedoc": "^0.15.6",
+    "typescript": "^3.7.4"
   },
   "directories": {
     "test": "test"
